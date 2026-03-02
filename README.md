@@ -2,6 +2,8 @@
 
 > RWA yield distribution · ZK privacy · AI Agent economy · ERC-4626 vault
 
+*Yelden — a medieval English village, home to a 12th century castle. A name that carries yield, history, and permanence.*
+
 [![Tests](https://img.shields.io/badge/tests-198%20passing-brightgreen)](./test)
 [![Solidity](https://img.shields.io/badge/solidity-0.8.20-blue)](./contracts)
 [![Certora](https://img.shields.io/badge/certora-7%2F7%20rules-purple)](./certora)
@@ -229,7 +231,7 @@ rust >= 1.70  # for circom 2.x
 
 ### Install
 ```bash
-git clone https://github.com/plongen/yelden-protocol
+git clone https://github.com/yeldenfund/yelden-protocol
 cd yelden-protocol
 npm install
 ```
