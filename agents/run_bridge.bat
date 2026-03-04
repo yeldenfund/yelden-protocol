@@ -4,30 +4,25 @@ echo  Yelden Protocol - Agent Bridge
 echo ============================================
 echo.
 
-cd /d C:\Users\Paulo\yelden-protocol\agents
+cd /d C:\Users\Administrator\yelden-protocol\agents
 
 echo [1/2] Buscando trades fechados no MT5...
-C:\Python314\python.exe mt5_monitor.py
+python mt5_monitor.py
 if errorlevel 1 (
     echo ERRO no monitor - abortando
     pause
     exit /b 1
 )
 
-if not exist agent_performance.json goto :sem_trades
-
 echo.
 echo [2/2] Enviando score para Sepolia...
-echo s | C:\Python314\python.exe yelden_reporter.py
-goto :fim
+echo s | python yelden_reporter.py
 
-:sem_trades
-echo.
-echo Nenhum trade novo - nao enviando para blockchain
+echo [3/3] Postando no Telegram...
+python telegram_report.py
 
-:fim
 echo.
 echo ============================================
-echo  Concluido!
+echo  Concluido! Verifique submission_receipt.json
 echo ============================================
 pause
