@@ -4,6 +4,8 @@
 
 *Yelden — a medieval English village, home to a 12th century castle. A name that carries yield, history, and permanence.*
 
+[🇧🇷 Leia em Português](./README.pt-BR.md)
+
 [![Tests](https://img.shields.io/badge/tests-198%20passing-brightgreen)](./test)
 [![Solidity](https://img.shields.io/badge/solidity-0.8.20-blue)](./contracts)
 [![Certora](https://img.shields.io/badge/certora-7%2F7%20rules-purple)](./certora)
