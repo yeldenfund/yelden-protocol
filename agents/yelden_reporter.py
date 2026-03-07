@@ -1,94 +1,143 @@
 """
-yelden_reporter.py — Envia score pro Yelden Registry
+yelden_reporter.py — Envia score pro Yelden Registry (Polygon)
 USO: python yelden_reporter.py
 """
-
 import json
 import os
+import sys
 from web3 import Web3
 from datetime import datetime
 from dotenv import load_dotenv
 
-# Carrega config
 load_dotenv()
 
-# Endereço do contrato (SUBSTITUA PELO CORRETO)
-# Endereço do contrato (SUBSTITUA PELO CORRETO)
-REGISTRY_ADDRESS = REGISTRY_ADDRESS = "0xca380aC6418f0089CdfE33F1A175F2452A3822d7"
+REGISTRY_ADDRESS = "0x32F534265090d8645652b76754B07E6648b51571"
+POLYGON_RPC      = "https://polygon-mainnet.g.alchemy.com/v2/4VTK2RA3hYVSgiuPshrx1"
 
-# ABI mínimo
-ABI = [{
-    "inputs": [
-        {"name": "agent", "type": "address"},
-        {"name": "score", "type": "uint256"},
-        {"name": "proofHash", "type": "bytes32"}
-    ],
-    "name": "reportPerformance",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-}]
+ABI = [
+    {
+        "inputs": [
+            {"name": "agent", "type": "address"},
+            {"name": "newScore", "type": "uint256"}
+        ],
+        "name": "updateScore",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [{"type": "address"}],
+        "name": "isActive",
+        "outputs": [{"type": "bool"}],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [{"type": "address"}],
+        "name": "score",
+        "outputs": [{"type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]
 
-print("="*50)
-print("Yelden Reporter - Enviando para Blockchain")
-print("="*50)
+print("=" * 50)
+print("Yelden Reporter — Polygon Mainnet")
+print("=" * 50)
 
 # 1. Carrega performance
 try:
-    with open("agent_performance.json") as f:
+    perf_path = os.path.join(os.path.dirname(__file__), "agent_performance.json")
+    with open(perf_path) as f:
         perf = json.load(f)
-    print(f"✅ Carregado: {perf['total_trades']} trades, score {perf['consistency_score']}")
-except:
-    print("❌ Erro: agent_performance.json não encontrado")
-    exit(1)
+    score  = perf.get("accumulated_score") or perf.get("consistency_score")
+    trades = perf.get("total_trades", 0)
+    print(f"Carregado: {trades} trades, score {score}")
+except Exception as e:
+    print(f"Erro: agent_performance.json nao encontrado — {e}")
+    sys.exit(1)
 
-# 2. Conecta
-w3 = Web3(Web3.HTTPProvider(os.getenv("ETH_RPC_URL")))
+# 2. Conecta Polygon
+w3 = Web3(Web3.HTTPProvider(POLYGON_RPC))
 if not w3.is_connected():
-    print("❌ Erro: não conectou à Ethereum")
-    exit(1)
+    print("Erro: nao conectou a Polygon")
+    sys.exit(1)
 
-account = w3.eth.account.from_key(os.getenv("PRIVATE_KEY"))
-print(f"✅ Conectado: {account.address[:10]}...")
-print(f"   Saldo: {w3.from_wei(w3.eth.get_balance(account.address), 'ether')} ETH")
+private_key   = os.getenv("PRIVATE_KEY")
+account       = w3.eth.account.from_key(private_key)
+agent_address = os.getenv("AGENT_ADDRESS", account.address)
 
-# 3. Prepara hash de prova
-proof = w3.keccak(text=f"{perf['window_start']}|{perf['total_trades']}|{perf['consistency_score']}")
+balance = w3.from_wei(w3.eth.get_balance(account.address), "ether")
+print(f"Agente:  {account.address}")
+print(f"Saldo:   {balance} MATIC")
 
-# 4. Prepara transação
+# 3. Verifica se agente está ativo
 contract = w3.eth.contract(
     address=Web3.to_checksum_address(REGISTRY_ADDRESS),
     abi=ABI
 )
 
-tx = contract.functions.reportPerformance(
-    Web3.to_checksum_address(os.getenv("AGENT_ADDRESS")),
-    perf['consistency_score'],
-    proof
+try:
+    active = contract.functions.isActive(
+        Web3.to_checksum_address(agent_address)
+    ).call()
+    if not active:
+        print("ERRO: Agente nao esta ativo no registry Polygon.")
+        sys.exit(1)
+    current_score = contract.functions.score(
+        Web3.to_checksum_address(agent_address)
+    ).call()
+    print(f"Score atual on-chain: {current_score}")
+except Exception as e:
+    print(f"AVISO: Nao foi possivel verificar estado: {e}")
+
+# 4. Gera batch hash
+import hashlib
+batch_data = f"{agent_address}{int(score)}{trades}{datetime.now().date()}"
+batch_hash = "0x" + hashlib.sha256(batch_data.encode()).hexdigest()
+batch_hash_bytes = bytes.fromhex(batch_hash[2:])
+
+# 5. Prepara transacao
+nonce = w3.eth.get_transaction_count(account.address)
+tx = contract.functions.updateScore(
+    Web3.to_checksum_address(agent_address),
+    int(score)
 ).build_transaction({
-    'from': account.address,
-    'nonce': w3.eth.get_transaction_count(account.address),
-    'gas': 200000,
-    'gasPrice': w3.eth.gas_price
+    "from":     account.address,
+    "nonce":    nonce,
+    "gas":      200_000,
+    "gasPrice": w3.to_wei(150, "gwei"),
+    "chainId":  137,
 })
 
-# 5. Mostra custo e pergunta
-custo = w3.from_wei(tx['gas'] * tx['gasPrice'], 'ether')
-print(f"\n💰 Custo estimado: {custo:.6f} ETH")
-import sys
+custo = w3.from_wei(tx["gas"] * tx["gasPrice"], "ether")
+print(f"\nCusto estimado: {custo:.6f} MATIC")
+
+# 6. Envia
 resp = "s" if not sys.stdin.isatty() else input("Enviar? (s/N): ")
 
-if resp.lower() == 's':
-    signed = account.sign_transaction(tx)
+if resp.lower() == "s":
+    signed  = account.sign_transaction(tx)
     tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
-    print(f"✅ Transação enviada: 0x{tx_hash.hex()}")
-    
-    # Salva recibo
-    with open("submission_receipt.json", "w") as f:
-        json.dump({
-            "data": datetime.now().isoformat(),
-            "score": perf['consistency_score'],
-            "tx": tx_hash.hex()
-        }, f, indent=2)
+    receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+
+    if receipt.status == 1:
+        print(f"\n✅ Transacao enviada: {tx_hash.hex()}")
+        print(f"https://polygonscan.com/tx/{tx_hash.hex()}")
+
+        receipt_path = os.path.join(os.path.dirname(__file__), "submission_receipt.json")
+        with open(receipt_path, "w") as f:
+            json.dump({
+                "date":    datetime.now().isoformat(),
+                "score":   int(score),
+                "trades":  trades,
+                "tx":      tx_hash.hex(),
+                "chain":   "polygon",
+                "status":  "success"
+            }, f, indent=2)
+    else:
+        print(f"\n❌ Transacao falhou: {tx_hash.hex()}")
+        print(f"https://polygonscan.com/tx/{tx_hash.hex()}")
+        sys.exit(1)
 else:
     print("Cancelado")

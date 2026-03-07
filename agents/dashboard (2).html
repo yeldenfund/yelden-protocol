@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yelden — Agent Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#C9A84C;--gold2:#F0D080;
+  --dark:#060607;--d1:#0C0C0E;--d2:#121214;
+  --border:#222226;--text:#E0E0E0;--muted:#555560;
+  --green:#3DB87A;--red:#D4556A;--teal:#0DD9C0;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--dark);color:var(--text);font-family:'Inter',sans-serif;font-weight:300;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(201,168,76,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;}
+.wrap{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:40px 28px 80px;}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:48px;}
+.brand{display:flex;align-items:center;gap:14px;}
+.hex{width:38px;height:38px;background:linear-gradient(135deg,var(--gold),#8B6A20);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);flex-shrink:0;}
+.brand-name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.08em;color:var(--gold);line-height:1;}
+.brand-sub{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.12em;margin-top:3px;}
+.live-pill{display:flex;align-items:center;gap:7px;background:rgba(61,184,122,.08);border:1px solid rgba(61,184,122,.25);border-radius:2px;padding:5px 12px;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.15em;color:var(--green);}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 1.8s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* AGENT STRIP */
+.agent-strip{background:var(--d1);border:1px solid var(--border);border-top:2px solid var(--gold);padding:18px 26px;display:flex;align-items:center;gap:18px;margin-bottom:20px;}
+.a-label{font-family:'Space Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:5px;}
+.a-name{font-size:17px;font-weight:500;}
+.a-badge{font-family:'Space Mono',monospace;font-size:9px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);color:var(--gold);padding:3px 9px;letter-spacing:.1em;}
+.a-right{margin-left:auto;text-align:right;}
+.a-addr{font-family:'Space Mono',monospace;font-size:11px;color:var(--gold);}
+.a-reg{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);margin-top:3px;}
+
+/* HERO SCORE — acumulado é o principal */
+.hero-score{background:var(--d1);border:1px solid var(--border);border-top:3px solid var(--gold);padding:32px 36px;margin-bottom:20px;display:grid;grid-template-columns:1fr auto;align-items:center;gap:32px;}
+.hs-left{}
+.hs-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;}
+.hs-value{font-family:'Bebas Neue',sans-serif;font-size:96px;line-height:.9;color:var(--gold);letter-spacing:.02em;}
+.hs-sub{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-top:10px;}
+.hs-bar{height:4px;background:var(--border);margin-top:14px;border-radius:2px;overflow:hidden;}
+.hs-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:2px;transition:width .8s ease;}
+.hs-right{text-align:right;}
+.hs-batch-label{font-family:'Space Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px;}
+.hs-batch-val{font-family:'Bebas Neue',sans-serif;font-size:42px;color:var(--text);opacity:.6;line-height:1;}
+.hs-trend{font-family:'Space Mono',monospace;font-size:11px;margin-top:6px;}
+
+/* METRICS GRID */
+.metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:20px;}
+.metric{background:var(--d1);padding:20px 18px;position:relative;overflow:hidden;}
+.metric::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.metric.gg::after{background:linear-gradient(90deg,var(--green),transparent);}
+.metric.gr::after{background:linear-gradient(90deg,var(--red),transparent);}
+.metric.gt::after{background:linear-gradient(90deg,var(--teal),transparent);}
+.metric.gm::after{background:linear-gradient(90deg,var(--muted),transparent);}
+.m-lbl{font-family:'Space Mono',monospace;font-size:7px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.m-val{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;color:var(--text);}
+.metric.gg .m-val{color:var(--green);}
+.metric.gr .m-val{color:var(--red);}
+.metric.gt .m-val{color:var(--teal);}
+.m-unit{font-family:'Space Mono',monospace;font-size:8px;color:var(--muted);margin-top:5px;}
+.m-sub{font-family:'Space Mono',monospace;font-size:8px;color:var(--muted);margin-top:2px;opacity:.6;}
+
+/* PANEL */
+.panel{background:var(--d1);border:1px solid var(--border);padding:24px;margin-bottom:20px;}
+.p-title{font-family:'Space Mono',monospace;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:20px;display:flex;align-items:center;gap:10px;}
+.p-title::after{content:'';flex:1;height:1px;background:var(--border);}
+canvas{width:100%!important;display:block;}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;}
+thead tr{border-bottom:1px solid var(--border);}
+th{font-family:'Space Mono',monospace;font-size:7px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:400;padding:0 10px 10px;text-align:left;}
+tbody tr{border-bottom:1px solid rgba(34,34,38,.6);transition:background .15s;}
+tbody tr:hover{background:rgba(201,168,76,.03);}
+tbody tr:last-child{border-bottom:none;}
+td{padding:11px 10px;font-family:'Space Mono',monospace;font-size:9px;color:var(--text);}
+td.cg{color:var(--gold);font-weight:700;}
+td.cm{color:var(--muted);}
+td.cgr{color:var(--green);}
+td.cr{color:var(--red);}
+td.big{font-family:'Bebas Neue',sans-serif;font-size:20px;}
+
+/* TX */
+.tx-item{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(34,34,38,.6);}
+.tx-item:last-child{border-bottom:none;}
+.tx-h{font-family:'Space Mono',monospace;font-size:9px;color:var(--gold);text-decoration:none;}
+.tx-h:hover{color:var(--gold2);}
+.tx-b{font-family:'Space Mono',monospace;font-size:8px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);color:var(--gold);padding:2px 8px;}
+.tx-m{font-family:'Space Mono',monospace;font-size:8px;color:var(--muted);}
+
+/* FOOTER */
+.foot{border-top:1px solid var(--border);padding-top:24px;margin-top:32px;display:flex;align-items:center;justify-content:space-between;}
+.axiom{font-size:10px;color:var(--muted);font-style:italic;}
+.axiom b{color:var(--gold);font-style:normal;}
+.fl{font-family:'Space Mono',monospace;font-size:8px;color:var(--muted);text-decoration:none;}
+.fl:hover{color:var(--gold);}
+
+@media(max-width:768px){
+  .metrics{grid-template-columns:repeat(3,1fr);}
+  .two{grid-template-columns:1fr;}
+  .hero-score{grid-template-columns:1fr;}
+  .hs-right{text-align:left;}
+  .hs-value{font-size:72px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="hex"></div>
+      <div>
+        <div class="brand-name">Yelden Protocol</div>
+        <div class="brand-sub">AIAGENTREGISTRY — SEPOLIA TESTNET</div>
+      </div>
+    </div>
+    <div class="live-pill"><div class="live-dot"></div>REPORTING DAILY · 06:00 UTC</div>
+  </div>
+
+  <!-- AGENT STRIP -->
+  <div class="agent-strip">
+    <div>
+      <div class="a-label">Registered Agent</div>
+      <div class="a-name">Markowitz Trading Bot</div>
+    </div>
+    <div class="a-badge">TRADING</div>
+    <div class="a-badge" style="background:rgba(13,217,192,.08);border-color:rgba(13,217,192,.25);color:var(--teal)">ERC-8004 · #27703</div>
+    <div class="a-right">
+      <div class="a-addr">0xfD3d...266cFc</div>
+      <div class="a-reg">AIAgentRegistry · 0xca38...22d7 · Stake: 50 YLD</div>
+    </div>
+  </div>
+
+  <!-- HERO SCORE -->
+  <div class="hero-score">
+    <div class="hs-left">
+      <div class="hs-label">⚡ Accumulated Score — F2 Weighted · 60-Day Decay</div>
+      <div class="hs-value" id="mAcc">886</div>
+      <div class="hs-bar"><div class="hs-bar-fill" id="mBar" style="width:88.6%"></div></div>
+      <div class="hs-sub" id="mAccSub">Based on 43 lifetime trades · Updated daily · Immutable on-chain</div>
+    </div>
+    <div class="hs-right">
+      <div class="hs-batch-label">Last Batch Score</div>
+      <div class="hs-batch-val" id="mBatch">802</div>
+      <div class="hs-trend" id="mTrend" style="color:var(--red)">↘ −84 vs accumulated</div>
+    </div>
+  </div>
+
+  <!-- METRICS 6-WIDE -->
+  <div class="metrics">
+    <div class="metric gg">
+      <div class="m-lbl">Return</div>
+      <div class="m-val" id="mRet">+4.45%</div>
+      <div class="m-unit">10 days</div>
+      <div class="m-sub" id="mProfit">$+445.45 USD</div>
+    </div>
+    <div class="metric gg">
+      <div class="m-lbl">Win Rate</div>
+      <div class="m-val" id="mWR">65.1%</div>
+      <div class="m-unit">43 trades</div>
+    </div>
+    <div class="metric gt">
+      <div class="m-lbl">Sharpe Ratio</div>
+      <div class="m-val" id="mSharpe">3.63</div>
+      <div class="m-unit">annualized</div>
+    </div>
+    <div class="metric gr">
+      <div class="m-lbl">Max Drawdown</div>
+      <div class="m-val" id="mDD">−0.68%</div>
+      <div class="m-unit">of account</div>
+      <div class="m-sub" id="mDDabs">$−71.49 USD</div>
+    </div>
+    <div class="metric gm">
+      <div class="m-lbl">Avg R-Multiple</div>
+      <div class="m-val" id="mAvgR">0.265</div>
+      <div class="m-unit">per trade</div>
+    </div>
+    <div class="metric gm">
+      <div class="m-lbl">Lifetime Trades</div>
+      <div class="m-val" id="mTrades">43</div>
+      <div class="m-unit">closed positions</div>
+    </div>
+  </div>
+
+  <!-- CHART -->
+  <div class="panel">
+    <div class="p-title">Score Evolution — All Runs</div>
+    <canvas id="chart" height="180"></canvas>
+  </div>
+
+  <!-- TABLE + TX -->
+  <div class="two">
+    <div class="panel">
+      <div class="p-title">Score History</div>
+      <table>
+        <thead><tr><th>Date</th><th>Trades</th><th>Batch</th><th>Accumulated</th><th>Δ</th></tr></thead>
+        <tbody id="histBody"></tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <div class="p-title">On-Chain Submissions · Sepolia</div>
+      <div id="txList"></div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="foot">
+    <div class="axiom"><b>The Yelden Axiom</b> — Trust is a rational response to shared consequence.</div>
+    <a class="fl" href="https://github.com/yeldenfund/yelden-protocol" target="_blank">github.com/yeldenfund/yelden-protocol ↗</a>
+  </div>
+
+</div>
+
+<script>
+const HISTORY = [
+  {date:'2026-03-01',trades:8, batch:966,tx:'0x1c17f74a26f787f4ed2076bc733da332bb0d56978e50e514d94fa569f36665b0'},
+  {date:'2026-03-02',trades:1, batch:764,tx:'0xe4ac05c91e7411066e00b97c0d239e623bf730d9204277ee3b50f174cc5e12e0'},
+  {date:'2026-03-02',trades:18,batch:958,tx:'0x9c035867254e8f225e6ace6b2dc8974d0ccef3e92e41349ab868c06a105d6910'},
+  {date:'2026-03-03',trades:20,batch:962,tx:'0xa62640dcbfbc05893b75a18dd39f3ff6a0fbd66ef209eae34724843749e6cb9d'},
+  {date:'2026-03-04',trades:19,batch:927,tx:'0x63f9950824bd1a6e4388dbd8313740094cfc8d3b38ac2e66fdd936074e560e5d'},
+  {date:'2026-03-04',trades:12,batch:802,tx:'0x7d7dc46901a5f22368a62f68792892249567ca3aa47b3755bfd94913744d6329'},
+];
+
+function buildAcc(h){
+  let acc=0,total=0;
+  return h.map((r,i)=>{
+    if(i===0){acc=r.batch;total=r.trades;}
+    else{const p=r.trades/(total+r.trades);acc=acc*(1-p)+r.batch*p;total+=r.trades;}
+    return{...r,acc:Math.round(acc),cumT:total};
+  });
+}
+const data=buildAcc(HISTORY);
+
+// Hero score
+const last=data[data.length-1];
+const prev=data[data.length-2];
+document.getElementById('mAcc').textContent=last.acc;
+document.getElementById('mBar').style.width=(last.acc/10)+'%';
+document.getElementById('mBatch').textContent=last.batch;
+document.getElementById('mAccSub').textContent=`Based on ${last.cumT} lifetime trades · Updated daily · Immutable on-chain`;
+const diff=last.acc-prev.acc;
+const trendEl=document.getElementById('mTrend');
+trendEl.textContent=(diff>=0?'↗ +':'↘ ')+diff+' vs previous accumulated';
+trendEl.style.color=diff>=0?'var(--green)':'var(--red)';
+
+// Table
+document.getElementById('histBody').innerHTML=[...data].reverse().map((r,i,arr)=>{
+  const prevAcc=i<arr.length-1?arr[i+1].acc:null;
+  const delta=prevAcc!==null?r.acc-prevAcc:null;
+  const deltaStr=delta===null?'—':(delta>=0?'+'+delta:''+delta);
+  const deltaClass=delta===null?'cm':delta>=0?'cgr':'cr';
+  return`<tr>
+    <td class="cm">${r.date.slice(5)}</td>
+    <td>${r.trades}</td>
+    <td class="${r.batch>=900?'cgr':r.batch>=800?'':'cr'}">${r.batch}</td>
+    <td class="cg big">${r.acc}</td>
+    <td class="${deltaClass}">${deltaStr}</td>
+  </tr>`;
+}).join('');
+
+// TX
+document.getElementById('txList').innerHTML=[...data].reverse().map(r=>`
+  <div class="tx-item">
+    <a class="tx-h" href="https://sepolia.etherscan.io/tx/${r.tx}" target="_blank">${r.tx.slice(0,10)}...${r.tx.slice(-6)}</a>
+    <span class="tx-m">${r.trades}t · ${r.date.slice(5)}</span>
+    <span class="tx-b">${r.batch}</span>
+  </div>`).join('');
+
+// Chart
+function renderChart(){
+  const canvas=document.getElementById('chart');
+  const W=canvas.offsetWidth||900,H=180,dpr=window.devicePixelRatio||1;
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  const acc=data.map(r=>r.acc),bat=data.map(r=>r.batch);
+  const all=[...acc,...bat];
+  const minV=Math.max(0,Math.min(...all)-80),maxV=Math.min(1000,Math.max(...all)+40);
+  const pad={l:48,r:24,t:32,b:44},n=data.length;
+  const tx=i=>pad.l+(i/(n-1))*(W-pad.l-pad.r);
+  const ty=v=>pad.t+(1-(v-minV)/(maxV-minV))*(H-pad.t-pad.b);
+
+  [700,800,900,1000].filter(v=>v>=minV&&v<=maxV).forEach(v=>{
+    const y=ty(v);
+    ctx.strokeStyle='rgba(34,34,38,1)';ctx.lineWidth=1;ctx.setLineDash([3,8]);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#444';ctx.font='9px Space Mono,monospace';ctx.textAlign='right';
+    ctx.fillText(v,pad.l-8,y+3);
+  });
+
+  // Batch bars (subtle background)
+  bat.forEach((s,i)=>{
+    const x=tx(i),y=ty(s);
+    ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);
+    ctx.fillStyle='rgba(201,168,76,.15)';ctx.fill();
+  });
+
+  // Acc fill
+  const gr=ctx.createLinearGradient(0,pad.t,0,H-pad.b);
+  gr.addColorStop(0,'rgba(201,168,76,.18)');gr.addColorStop(1,'rgba(201,168,76,0)');
+  ctx.beginPath();ctx.moveTo(tx(0),ty(acc[0]));
+  acc.forEach((s,i)=>{if(i>0)ctx.lineTo(tx(i),ty(s));});
+  ctx.lineTo(tx(n-1),H-pad.b);ctx.lineTo(tx(0),H-pad.b);ctx.closePath();
+  ctx.fillStyle=gr;ctx.fill();
+
+  // Acc line
+  ctx.beginPath();ctx.moveTo(tx(0),ty(acc[0]));
+  acc.forEach((s,i)=>{if(i>0)ctx.lineTo(tx(i),ty(s));});
+  ctx.strokeStyle='#C9A84C';ctx.lineWidth=2.5;ctx.stroke();
+
+  // Dots + labels
+  acc.forEach((s,i)=>{
+    const x=tx(i),y=ty(s);
+    ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);
+    ctx.fillStyle='#C9A84C';ctx.fill();
+    ctx.strokeStyle='#060607';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='#EEE';ctx.font='bold 10px Space Mono,monospace';ctx.textAlign='center';
+    ctx.fillText(s,x,y-13);
+  });
+
+  // X labels
+  data.forEach((r,i)=>{
+    ctx.fillStyle='#444';ctx.font='8px Space Mono,monospace';ctx.textAlign='center';
+    ctx.fillText('R'+(i+1)+' '+r.date.slice(5),tx(i),H-10);
+  });
+
+  // Legend
+  ctx.fillStyle='#C9A84C';ctx.beginPath();ctx.arc(W-160,18,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#666';ctx.font='8px Space Mono,monospace';ctx.textAlign='left';
+  ctx.fillText('Accumulated',W-150,22);
+  ctx.fillStyle='rgba(201,168,76,.25)';ctx.beginPath();ctx.arc(W-65,18,3,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#666';ctx.fillText('Batch',W-55,22);
+}
+
+renderChart();
+window.addEventListener('resize',renderChart);
+</script>
+</body>
+</html>

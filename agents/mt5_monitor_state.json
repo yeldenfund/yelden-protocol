@@ -1,0 +1,14 @@
+{
+  "last_ticket": 204968339,
+  "last_check": "2026-03-06T11:36:21.667728",
+  "last_score": 989,
+  "accumulated_score": 989,
+  "total_trades_lifetime": 56,
+  "win_rate_lifetime": 0.6785714285714286,
+  "sharpe_lifetime": 4.7169,
+  "total_profit_lifetime": 793.85,
+  "max_drawdown_lifetime": 131.94,
+  "avg_r_lifetime": 0.3661,
+  "first_trade_time": "2026-02-24T01:09:08",
+  "last_trade_time": "2026-03-06T10:59:49"
+}
