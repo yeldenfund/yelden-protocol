@@ -4,6 +4,8 @@ mt5_monitor.py — Yelden Protocol Agent Bridge
 Monitors closed trades from a MetaTrader 5 trading agent
 and prepares performance data for the AIAgentRegistry.
 
+Score acumulado: F2 (peso por trades) + decay exponencial 60 dias.
+
 Part of: github.com/yeldenfund/yelden-protocol
 License: MIT
 """
@@ -11,6 +13,7 @@ License: MIT
 import MetaTrader5 as mt5
 import json
 import os
+import math
 import numpy as np
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
@@ -18,9 +21,10 @@ from typing import Optional
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-MAGIC_NUMBER   = 975311        # Must match CONFIG['magic_number'] in your bot
-LOOKBACK_HOURS = 24            # How far back to check for closed trades
+MAGIC_NUMBER   = 975311
+LOOKBACK_HOURS = 24
 STATE_FILE     = "mt5_monitor_state.json"
+HALF_LIFE_DAYS = 60   # Score de 60 dias atrás vale metade
 
 # ── Data Structures ───────────────────────────────────────────────────────────
 
@@ -28,14 +32,14 @@ STATE_FILE     = "mt5_monitor_state.json"
 class ClosedTrade:
     ticket:         int
     symbol:         str
-    side:           str       # BUY or SELL
+    side:           str
     volume:         float
     open_price:     float
     close_price:    float
     profit:         float
     profit_pct:     float
     r_multiple:     float
-    close_reason:   str       # TP, SL, TIMESTOP
+    close_reason:   str
     open_time:      str
     close_time:     str
     duration_hours: float
@@ -43,18 +47,20 @@ class ClosedTrade:
 
 @dataclass
 class AgentPerformance:
-    agent_address:     str
-    window_start:      str
-    window_end:        str
-    total_trades:      int
-    winning_trades:    int
-    win_rate:          float
-    total_profit:      float
-    sharpe_ratio:      float
-    max_drawdown:      float
-    avg_r_multiple:    float
-    consistency_score: int    # 0-1000, maps to Registry score
-    trades:            list
+    agent_address:      str
+    window_start:       str
+    window_end:         str
+    total_trades:       int
+    winning_trades:     int
+    win_rate:           float
+    total_profit:       float
+    sharpe_ratio:       float
+    max_drawdown:       float
+    avg_r_multiple:     float
+    consistency_score:  int    # score do batch atual
+    accumulated_score:  int    # score acumulado F2 + decay
+    total_trades_lifetime: int
+    trades:             list
 
 # ── State Management ──────────────────────────────────────────────────────────
 
@@ -62,11 +68,52 @@ def load_state() -> dict:
     if os.path.exists(STATE_FILE):
         with open(STATE_FILE, 'r') as f:
             return json.load(f)
-    return {"last_ticket": 0, "last_check": None}
+    return {
+        "last_ticket":           0,
+        "last_check":            None,
+        "last_score":            0,
+        "accumulated_score":     0,
+        "total_trades_lifetime": 0,
+        "score_history":         [],   # [{score, trades, timestamp}]
+    }
 
 def save_state(state: dict):
     with open(STATE_FILE, 'w') as f:
         json.dump(state, f, indent=2)
+
+# ── Score Acumulado ───────────────────────────────────────────────────────────
+
+def _time_decay(days_ago: float, half_life: float = HALF_LIFE_DAYS) -> float:
+    """Decay exponencial — score de half_life dias atrás vale metade."""
+    return math.exp(-0.693 * days_ago / half_life)
+
+def calculate_accumulated_score(history: list, new_score: int, new_trades: int) -> int:
+    """
+    F2 + decay temporal.
+    history: [{score, trades, timestamp}]
+    Cada entrada pesa: n_trades * time_decay(days_ago)
+    """
+    now = datetime.now()
+
+    total_weighted = 0.0
+    total_peso     = 0.0
+
+    for entry in history:
+        ts       = datetime.fromisoformat(entry["timestamp"])
+        days_ago = (now - ts).total_seconds() / 86400
+        decay    = _time_decay(days_ago)
+        peso     = entry["trades"] * decay
+        total_weighted += entry["score"] * peso
+        total_peso     += peso
+
+    # Adiciona o batch atual (days_ago = 0 → decay = 1.0)
+    total_weighted += new_score * new_trades
+    total_peso     += new_trades
+
+    if total_peso <= 0:
+        return new_score
+
+    return min(1000, max(0, int(total_weighted / total_peso)))
 
 # ── MT5 Connection ────────────────────────────────────────────────────────────
 
@@ -138,11 +185,6 @@ def get_closed_trades(lookback_hours: int = 24, last_ticket: int = 0) -> list:
     return trades
 
 def _find_open_deal_and_order(position_id: int, date_from: datetime, date_to: datetime):
-    """
-    Find opening deal AND original order to get real SL price.
-    MT5 stores SL in the order, not in the deal.
-    """
-    # Find opening deal
     all_deals = mt5.history_deals_get(date_from - timedelta(days=30), date_to)
     open_deal = None
     if all_deals:
@@ -154,7 +196,6 @@ def _find_open_deal_and_order(position_id: int, date_from: datetime, date_to: da
     if open_deal is None:
         return None, None
 
-    # Find original order to get SL
     all_orders = mt5.history_orders_get(date_from - timedelta(days=30), date_to)
     open_order = None
     if all_orders:
@@ -165,14 +206,7 @@ def _find_open_deal_and_order(position_id: int, date_from: datetime, date_to: da
 
     return open_deal, open_order
 
-
-
-
 def _infer_close_reason(deal, open_price: float, close_price: float, side: str) -> str:
-    """
-    MT5 doesn't always tag SL/TP explicitly in history.
-    Infer from comment and price direction.
-    """
     comment = (deal.comment or "").upper()
     if "TP" in comment or "TAKE PROFIT" in comment:
         return "TP"
@@ -184,7 +218,7 @@ def _infer_close_reason(deal, open_price: float, close_price: float, side: str) 
         return "TP" if close_price > open_price else "SL"
     return "TP" if close_price < open_price else "SL"
 
-def _calculate_r_multiple(profit: float, volume: float, open_price: float, 
+def _calculate_r_multiple(profit: float, volume: float, open_price: float,
                            sl_price: float, symbol: str) -> float:
     if sl_price <= 0 or abs(open_price - sl_price) < 1e-8:
         return 0.0
@@ -200,8 +234,8 @@ def _calculate_r_multiple(profit: float, volume: float, open_price: float,
     if tick_size <= 0:
         tick_size = 0.00001
 
-    points_risk         = abs(open_price - sl_price) / tick_size
-    initial_risk_money  = points_risk * tick_value * volume
+    points_risk        = abs(open_price - sl_price) / tick_size
+    initial_risk_money = points_risk * tick_value * volume
 
     if initial_risk_money <= 0:
         return 0.0
@@ -210,19 +244,17 @@ def _calculate_r_multiple(profit: float, volume: float, open_price: float,
 
 # ── Performance Calculation ───────────────────────────────────────────────────
 
-def calculate_performance(trades: list, agent_address: str) -> Optional[AgentPerformance]:
-    """
-    Calculates aggregate performance and maps to Registry score (0-1000).
-    """
+def calculate_performance(trades: list, agent_address: str,
+                          state: dict) -> Optional[AgentPerformance]:
     if not trades:
         return None
 
-    profits      = [t.profit for t in trades]
-    r_multiples  = [t.r_multiple for t in trades]
-    winners      = [t for t in trades if t.profit > 0]
-    total_profit = sum(profits)
-    win_rate     = len(winners) / len(trades)
-    avg_r        = sum(r_multiples) / len(r_multiples)
+    profits     = [t.profit for t in trades]
+    r_multiples = [t.r_multiple for t in trades]
+    winners     = [t for t in trades if t.profit > 0]
+    win_rate    = len(winners) / len(trades)
+    avg_r       = sum(r_multiples) / len(r_multiples)
+    total_profit= sum(profits)
 
     arr    = np.array(profits)
     sharpe = float((arr.mean() / arr.std()) * (252 ** 0.5)) if arr.std() > 0 else 0.0
@@ -231,36 +263,32 @@ def calculate_performance(trades: list, agent_address: str) -> Optional[AgentPer
     running_max = np.maximum.accumulate(cumulative)
     max_dd      = float((cumulative - running_max).min())
 
-    consistency = _calculate_consistency_score(win_rate, sharpe, avg_r, len(trades))
+    batch_score = _calculate_consistency_score(win_rate, sharpe, avg_r, len(trades))
+
+    # Score acumulado F2 + decay
+    history          = state.get("score_history", [])
+    accumulated      = calculate_accumulated_score(history, batch_score, len(trades))
+    lifetime_trades  = state.get("total_trades_lifetime", 0) + len(trades)
 
     return AgentPerformance(
-        agent_address     = agent_address,
-        window_start      = trades[0].open_time,
-        window_end        = trades[-1].close_time,
-        total_trades      = len(trades),
-        winning_trades    = len(winners),
-        win_rate          = round(win_rate, 4),
-        total_profit      = round(total_profit, 2),
-        sharpe_ratio      = round(sharpe, 4),
-        max_drawdown      = round(max_dd, 2),
-        avg_r_multiple    = round(avg_r, 4),
-        consistency_score = consistency,
-        trades            = [asdict(t) for t in trades],
+        agent_address         = agent_address,
+        window_start          = trades[0].open_time,
+        window_end            = trades[-1].close_time,
+        total_trades          = len(trades),
+        winning_trades        = len(winners),
+        win_rate              = round(win_rate, 4),
+        total_profit          = round(total_profit, 2),
+        sharpe_ratio          = round(sharpe, 4),
+        max_drawdown          = round(max_dd, 2),
+        avg_r_multiple        = round(avg_r, 4),
+        consistency_score     = batch_score,
+        accumulated_score     = accumulated,
+        total_trades_lifetime = lifetime_trades,
+        trades                = [asdict(t) for t in trades],
     )
 
 def _calculate_consistency_score(win_rate: float, sharpe: float,
-                                   avg_r: float, n_trades: int) -> int:
-    """
-    Maps performance to Registry score (0-1000).
-    Starts at 300 — matches AIAgentRegistry initial score.
-
-    Components:
-    - Win rate:     0-300 pts
-    - Sharpe:       0-300 pts
-    - Positive R:   0-200 pts
-    - Trade count:  0-100 pts
-    - Floor:        300
-    """
+                                  avg_r: float, n_trades: int) -> int:
     score = 300
 
     wr_score = min(300, max(0, int((win_rate - 0.30) * 600)))
@@ -284,10 +312,6 @@ def _calculate_consistency_score(win_rate: float, sharpe: float,
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def run_monitor(agent_address: str, mt5_path: Optional[str] = None) -> Optional[AgentPerformance]:
-    """
-    Connect to MT5, fetch closed trades, calculate performance.
-    Returns AgentPerformance ready for yelden_reporter.py.
-    """
     if not connect_mt5(mt5_path):
         return None
 
@@ -302,22 +326,37 @@ def run_monitor(agent_address: str, mt5_path: Optional[str] = None) -> Optional[
         mt5.shutdown()
         return None
 
-    performance = calculate_performance(trades, agent_address)
+    performance = calculate_performance(trades, agent_address, state)
 
     if performance:
         last_ticket = max(t.ticket for t in trades)
-        save_state({
-            "last_ticket": last_ticket,
-            "last_check":  datetime.now().isoformat(),
-            "last_score":  performance.consistency_score,
+
+        # Atualiza histórico de scores
+        history = state.get("score_history", [])
+        history.append({
+            "score":     performance.consistency_score,
+            "trades":    performance.total_trades,
+            "timestamp": datetime.now().isoformat(),
         })
+
+        save_state({
+            "last_ticket":           last_ticket,
+            "last_check":            datetime.now().isoformat(),
+            "last_score":            performance.consistency_score,
+            "accumulated_score":     performance.accumulated_score,
+            "total_trades_lifetime": performance.total_trades_lifetime,
+            "score_history":         history,
+        })
+
         print(f"\n📊 Performance Summary:")
-        print(f"   Trades:      {performance.total_trades}")
-        print(f"   Win Rate:    {performance.win_rate*100:.1f}%")
-        print(f"   Sharpe:      {performance.sharpe_ratio:.2f}")
-        print(f"   Max DD:      ${performance.max_drawdown:.2f}")
-        print(f"   Avg R:       {performance.avg_r_multiple:.3f}")
-        print(f"   Score:       {performance.consistency_score}/1000")
+        print(f"   Trades (batch):  {performance.total_trades}")
+        print(f"   Trades (total):  {performance.total_trades_lifetime}")
+        print(f"   Win Rate:        {performance.win_rate*100:.1f}%")
+        print(f"   Sharpe:          {performance.sharpe_ratio:.2f}")
+        print(f"   Max DD:          ${performance.max_drawdown:.2f}")
+        print(f"   Avg R:           {performance.avg_r_multiple:.3f}")
+        print(f"   Score (batch):   {performance.consistency_score}/1000")
+        print(f"   Score (acc):     {performance.accumulated_score}/1000  ← envia para Registry")
 
     mt5.shutdown()
     return performance
