@@ -80,7 +80,7 @@ def format_message(perf, receipt, state) -> str:
     if tx_hash:
         short = tx_hash[:10] + "..." + tx_hash[-6:]
         lines.append(f"🔗 On-chain: {short}")
-        lines.append(f"sepolia.etherscan.io/tx/{tx_hash}")
+        lines.append(f"polygonscan.com/tx/{tx_hash}")
         lines.append(f"")
 
     lines.append("github.com/yeldenfund/yelden-protocol")
