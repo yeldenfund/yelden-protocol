@@ -62,18 +62,33 @@ contract YeldenVault is ERC20, Ownable, ReentrancyGuard {
 
     // ─── Admin ────────────────────────────────────────────────────────────────
 
+    /**
+     * @notice Set the yield distributor contract.
+     * @dev Must be called before the first harvest. Replaces any existing distributor.
+     * @param _distributor Address of the deployed YeldenDistributor contract
+     */
     function setDistributor(address _distributor) external onlyOwner {
         require(_distributor != address(0), "Invalid distributor");
         emit DistributorSet(address(distributor), _distributor);
         distributor = IYeldenDistributor(_distributor);
     }
 
+    /**
+     * @notice Set the AIAgentRegistry address authorised to call receiveSlash().
+     * @param _registry Address of the deployed AIAgentRegistry contract
+     */
     function setRegistry(address _registry) external onlyOwner {
         require(_registry != address(0), "Invalid registry");
         emit RegistrySet(registry, _registry);
         registry = _registry;
     }
 
+    /**
+     * @notice Withdraw funds from the bear-market yield reserve.
+     * @dev Only the owner (multisig in production) may call this.
+     * @param to     Recipient address
+     * @param amount Amount of USDC to withdraw from yieldReserve
+     */
     function withdrawReserve(address to, uint256 amount) external onlyOwner {
         require(to != address(0), "Invalid recipient");
         require(amount <= yieldReserve, "Exceeds reserve");
@@ -99,23 +114,43 @@ contract YeldenVault is ERC20, Ownable, ReentrancyGuard {
 
     // ─── ERC-4626 Core ────────────────────────────────────────────────────────
 
+    /**
+     * @notice Returns the total USDC held by the vault (deposits + received yield).
+     * @return Total asset balance of the vault
+     */
     function totalAssets() public view returns (uint256) {
         return asset.balanceOf(address(this));
     }
 
-    function convertToShares(uint256 assets) public view returns (uint256) {
+    /**
+     * @notice Convert an asset (USDC) amount to the equivalent yUSD share amount.
+     * @param assets Amount of USDC to convert
+     * @return shares Equivalent number of yUSD shares
+     */
+    function convertToShares(uint256 assets) public view returns (uint256 shares) {
         uint256 supply = totalSupply();
         uint256 total  = totalAssets();
         if (supply == 0 || total == 0) return assets;
         return (assets * supply) / total;
     }
 
-    function convertToAssets(uint256 shares) public view returns (uint256) {
+    /**
+     * @notice Convert a yUSD share amount to the equivalent USDC asset amount.
+     * @param shares Number of yUSD shares to convert
+     * @return assets Equivalent amount of USDC
+     */
+    function convertToAssets(uint256 shares) public view returns (uint256 assets) {
         uint256 supply = totalSupply();
         if (supply == 0) return shares;
         return (shares * totalAssets()) / supply;
     }
 
+    /**
+     * @notice Deposit USDC and receive yUSD shares in return.
+     * @param assets   Amount of USDC to deposit
+     * @param receiver Address that will receive the minted yUSD shares
+     * @return shares  Number of yUSD shares minted to `receiver`
+     */
     function deposit(uint256 assets, address receiver)
         external nonReentrant returns (uint256 shares)
     {
@@ -128,6 +163,13 @@ contract YeldenVault is ERC20, Ownable, ReentrancyGuard {
         emit Deposit(msg.sender, receiver, assets, shares);
     }
 
+    /**
+     * @notice Burn yUSD shares and withdraw a specific USDC asset amount.
+     * @param assets   Amount of USDC to withdraw
+     * @param receiver Address that will receive the USDC
+     * @param owner    Address whose yUSD shares will be burned
+     * @return shares  Number of yUSD shares burned
+     */
     function withdraw(uint256 assets, address receiver, address owner)
         external nonReentrant returns (uint256 shares)
     {
@@ -143,6 +185,13 @@ contract YeldenVault is ERC20, Ownable, ReentrancyGuard {
         emit Withdraw(msg.sender, receiver, owner, assets, shares);
     }
 
+    /**
+     * @notice Burn a specific number of yUSD shares and receive the equivalent USDC.
+     * @param shares   Number of yUSD shares to burn
+     * @param receiver Address that will receive the USDC
+     * @param owner    Address whose yUSD shares will be burned
+     * @return assets  Amount of USDC transferred to `receiver`
+     */
     function redeem(uint256 shares, address receiver, address owner)
         external nonReentrant returns (uint256 assets)
     {
@@ -160,6 +209,17 @@ contract YeldenVault is ERC20, Ownable, ReentrancyGuard {
 
     // ─── Yield Harvest ────────────────────────────────────────────────────────
 
+    /**
+     * @notice Harvest RWA yield and route it to the configured pools.
+     * @dev Routes yield as follows:
+     *      - BASE_YIELD_BPS (4.5%) rebased into yUSD price (stays in vault)
+     *      - REGEN_BPS (5%)        allocated to environmental regen fund
+     *      - Surplus (90.5%):
+     *          - YIELD_RESERVE_BPS (20%) → yieldReserve (bear-market buffer)
+     *          - remainder (80%)         → YeldenDistributor.distribute()
+     *      The USDC for `grossYield` must be transferred to the vault before calling.
+     * @param grossYield Total gross yield amount in USDC to process
+     */
     function harvest(uint256 grossYield) external onlyOwner {
         require(grossYield > 0, "Zero yield");
         require(address(distributor) != address(0), "Distributor not set");
