@@ -264,21 +264,8 @@ contract AIAgentRegistry is AccessControl, ReentrancyGuard {
     /**
      * @notice Batch fee collection — up to 50 agents. Efficient for DON.
      */
-    // FIX-3: collectFeeBatch — enforces checks-effects-interactions per iteration.
-    // Previous version called _burnYLD (external safeTransfer) before emitting
-    // events and before checking the stake threshold — if burnAddress were ever
-    // a contract, it could re-enter on the safeTransfer callback.
-    // Fix: complete ALL state changes for each agent first, accumulate burn
-    // total, then perform the single external call at the end of the batch.
-    // This eliminates the reentrancy vector entirely without changing behaviour.
-    //
-    // TEST UPDATE: no interface change — existing tests pass unchanged.
-    // New test to add: verify totalBurned increases by correct accumulated amount.
     function collectFeeBatch(address[] calldata agents) external nonReentrant {
         require(agents.length <= 50, "Registry: batch too large");
-
-        // FIX-3: accumulate total to burn — single external call after all state changes
-        uint256 totalFeeToBurn;
 
         for (uint256 i = 0; i < agents.length; i++) {
             Agent storage a = _agents[agents[i]];
@@ -292,13 +279,11 @@ contract AIAgentRegistry is AccessControl, ReentrancyGuard {
             }
 
             if (fee > a.stake) fee = a.stake;
-
-            // FIX-3: all state changes BEFORE any external interaction
             a.stake -= fee;
             a.lastFeeCollection = block.timestamp;
             totalBurned += fee;
-            totalFeeToBurn += fee;
 
+            _burnYLD(fee, "monthly fee batch");
             emit FeeCollected(agents[i], fee, a.stake, block.timestamp);
 
             if (a.stake < minStake / 2) {
@@ -307,11 +292,6 @@ contract AIAgentRegistry is AccessControl, ReentrancyGuard {
                 a.slashPending = false;
                 emit AgentDroppedToPending(agents[i], StakeReducedBy.FEE, block.timestamp);
             }
-        }
-
-        // FIX-3: single external call after all state is settled
-        if (totalFeeToBurn > 0) {
-            _burnYLD(totalFeeToBurn, "monthly fee batch");
         }
     }
 
@@ -338,7 +318,7 @@ contract AIAgentRegistry is AccessControl, ReentrancyGuard {
             "Registry: agent not slashable"
         );
 
-        uint256 burnAmount;
+        uint256 burnAmount = 0;
 
         if (level == SlashLevel.WARNING) {
             require(a.status == AgentStatus.ACTIVE, "Registry: WARNING only for ACTIVE");

@@ -47,6 +47,7 @@ contract ZKVerifier {
 
     // ── Constructor ──────────────────────────────────────────────────────────
     constructor(address _verifier, address _distributor) {
+        require(_distributor != address(0), "ZKVerifier: invalid distributor");
         verifier    = IGroth16Verifier(_verifier);
         distributor = _distributor;
     }
@@ -88,11 +89,9 @@ contract ZKVerifier {
         // Nullifier não pode ter sido usado antes
         if (usedNullifiers[nullifierHash]) revert NullifierUsed();
 
-        // Verifica a prova Groth16 on-chain (skip se verifier não configurado — modo teste)
-        if (address(verifier) != address(0)) {
-            bool valid = verifier.verifyProof(a, b, c, input);
-            if (!valid) revert InvalidProof();
-        }
+        // Verifica a prova Groth16 on-chain
+        bool valid = verifier.verifyProof(a, b, c, input);
+        if (!valid) revert InvalidProof();
 
         // Marca nullifier como usado — evita double-claim
         usedNullifiers[nullifierHash] = true;
@@ -112,7 +111,6 @@ contract ZKVerifier {
     ) external view returns (bool) {
         if (input[0] != 1)                   return false;
         if (usedNullifiers[input[2]])         return false;
-        if (address(verifier) == address(0)) return true;
         return verifier.verifyProof(a, b, c, input);
     }
 
