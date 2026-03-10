@@ -1,0 +1,1 @@
+require('fs').writeFileSync('contribution.circom', require('fs').readFileSync('write_circuit.js').toString())

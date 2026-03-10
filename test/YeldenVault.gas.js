@@ -4,7 +4,7 @@ const { deployConnected } = require("./helpers");
 
 describe("YeldenVault — Gas Consumption", function () {
   let vault, distributor, mockUSDC;
-  let owner, user1, user2;
+  let owner, user1, user2, yieldOracle;
 
   const DEPOSIT_AMOUNT = ethers.parseUnits("1000", 6);
   const GROSS_YIELD = ethers.parseUnits("5000", 6);
@@ -15,6 +15,7 @@ describe("YeldenVault — Gas Consumption", function () {
     const deployment = await deployConnected();
     vault = deployment.vault;
     mockUSDC = deployment.usdc;
+    yieldOracle = deployment.yieldOracle;
 
     await mockUSDC.mint(user1.address, ethers.parseUnits("100000", 6));
     await mockUSDC.mint(user2.address, ethers.parseUnits("100000", 6));
@@ -85,7 +86,8 @@ describe("YeldenVault — Gas Consumption", function () {
     });
 
     it("Records gas for harvest", async function () {
-      const tx = await vault.connect(owner).harvest(GROSS_YIELD);
+      await mockUSDC.mint(await vault.getAddress(), GROSS_YIELD);
+      const tx = await vault.connect(yieldOracle).harvest(GROSS_YIELD);
       const receipt = await tx.wait();
       
       console.log(`⛽ Harvest: ${receipt.gasUsed} gas`);
@@ -193,7 +195,8 @@ describe("YeldenVault — Gas Consumption", function () {
       console.log(`   ✅ Deposit:  ${receipt.gasUsed} gas`);
       
       // Harvest (owner)
-      tx = await vault.connect(owner).harvest(GROSS_YIELD);
+      await mockUSDC.mint(await vault.getAddress(), GROSS_YIELD);
+      tx = await vault.connect(yieldOracle).harvest(GROSS_YIELD);
       receipt = await tx.wait();
       console.log(`   ✅ Harvest:  ${receipt.gasUsed} gas (owner)`);
       
@@ -207,7 +210,8 @@ describe("YeldenVault — Gas Consumption", function () {
       const r_a = await tx_a.wait();
       const tx_d = await vault.connect(user1).deposit(DEPOSIT_AMOUNT, user1.address);
       const r_d = await tx_d.wait();
-      const tx_h = await vault.connect(owner).harvest(GROSS_YIELD);
+      const tx_h = await mockUSDC.mint(await vault.getAddress(), GROSS_YIELD);
+    await vault.connect(yieldOracle).harvest(GROSS_YIELD);
       const r_h = await tx_h.wait();
       const tx_w = await vault.connect(user1).withdraw(DEPOSIT_AMOUNT / 2n, user1.address, user1.address);
       const r_w = await tx_w.wait();

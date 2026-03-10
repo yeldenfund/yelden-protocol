@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 
 describe("YeldenVault — Mainnet Fork Tests", function () {
   let vault;
-  let owner, user1;
+  let owner, user1, yieldOracle;
   
   // Endereços reais da mainnet
   const USDC_MAINNET = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
@@ -36,6 +36,8 @@ describe("YeldenVault — Mainnet Fork Tests", function () {
       "yUSD"
     );
     await vault.waitForDeployment();
+      [, yieldOracle] = await ethers.getSigners();
+      await vault.setYieldOracle(await yieldOracle.getAddress());
 
     // Connect distributor so harvest() works
     const YeldenDistributor = await ethers.getContractFactory("YeldenDistributor");
@@ -214,8 +216,15 @@ describe("YeldenVault — Mainnet Fork Tests", function () {
       console.log(`   ✅ yUSD recebido: ${ethers.formatUnits(yUSDBalance, 6)} yUSD`);
       
       // 4. Simular harvest (owner)
+      const [,yieldOracle] = await ethers.getSigners();
+      const whaleAddr = '0x28C6c06298d514Db089934071355E5743bf21d60';
+      await network.provider.request({ method: 'hardhat_impersonateAccount', params: [whaleAddr] });
+      const whale2 = await ethers.getSigner(whaleAddr);
+      await whale2.sendTransaction({ to: whaleAddr, value: 0 }); // ensure active
+      await usdc.connect(whale2).transfer(await vault.getAddress(), ethers.parseUnits('500', 6));
+
       const grossYield = ethers.parseUnits("500", 6);
-      await vault.connect(owner).harvest(grossYield);
+      await vault.connect(yieldOracle).harvest(grossYield);
       console.log(`   ✅ Harvest: ${ethers.formatUnits(grossYield, 6)} USDC yield`);
       
       // 5. Saque parcial

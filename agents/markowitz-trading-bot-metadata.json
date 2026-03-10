@@ -1,0 +1,16 @@
+{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "Markowitz Trading Bot",
+  "description": "Markowitz portfolio optimization agent. Manages 29-30 simultaneous positions across FX, crypto and commodities. Score 0–1000 updated daily from closed trade history. Accountability enforced via AIAgentRegistry — stake + slash mechanism. Live on Sepolia testnet.",
+  "image": "",
+  "services": [
+    {
+      "name": "MCP",
+      "endpoint": "https://yelden.fund/agent"
+    }
+  ],
+  "registrations": [],
+  "supportedTrusts": [],
+  "active": false,
+  "x402support": false
+}

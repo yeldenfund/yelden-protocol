@@ -4,7 +4,7 @@ const { deployConnected } = require("./helpers");
 
 describe("Yelden — Teste de Reentrância", function () {
   let vault, distributor, mockUSDC, attacker;
-  let owner, attackerSigner;
+  let owner, attackerSigner, yieldOracle;
 
   beforeEach(async function () {
     [owner, attackerSigner] = await ethers.getSigners();
@@ -13,6 +13,7 @@ describe("Yelden — Teste de Reentrância", function () {
     vault = deployment.vault;
     distributor = deployment.distributor;
     mockUSDC = deployment.usdc;
+    yieldOracle = deployment.yieldOracle;
 
     await mockUSDC.mint(attackerSigner.address, ethers.parseUnits("10000", 6));
     
