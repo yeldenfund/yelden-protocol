@@ -1,14 +1,19 @@
 {
-  "last_ticket": 202911989,
-  "last_check": "2026-03-04T01:09:38.173505",
-  "last_score": 927,
-  "accumulated_score": 927,
-  "total_trades_lifetime": 19,
+  "last_ticket": 206674833,
+  "last_check": "2026-03-11T06:00:57.937068",
+  "last_score": 502,
+  "accumulated_score": 390,
+  "total_trades_lifetime": 66,
   "score_history": [
     {
-      "score": 927,
-      "trades": 19,
-      "timestamp": "2026-03-04T01:09:38.173501"
+      "score": 300,
+      "trades": 5,
+      "timestamp": "2026-03-09T06:00:59.319187"
+    },
+    {
+      "score": 502,
+      "trades": 4,
+      "timestamp": "2026-03-11T06:00:57.937068"
     }
   ]
 }

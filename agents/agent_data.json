@@ -1,0 +1,35 @@
+{
+  "network": "polygon",
+  "registry_address": "0x32F534265090d8645652b76754B07E6648b51571",
+  "agent_address": "0x84d00C78866A98CC2c7f985bdbF4871c552fF986",
+  "agent_name": "Markowitz Trading Bot",
+  "agent_type": "TRADING",
+  "erc_id": "27703",
+  "stake_yld": 50,
+  "accumulated_score": 390,
+  "last_batch_score": 502,
+  "total_trades_lifetime": 66,
+  "win_rate_lifetime": 0.25,
+  "sharpe_lifetime": 1.6966,
+  "total_profit_lifetime": 13.6,
+  "max_drawdown_lifetime": -16.61,
+  "avg_r_lifetime": -0.5265,
+  "score_history": [
+    {
+      "date": "2026-03-09",
+      "trades": 5,
+      "batch": 300,
+      "accumulated": 300,
+      "tx": ""
+    },
+    {
+      "date": "2026-03-11",
+      "trades": 4,
+      "batch": 502,
+      "accumulated": 390,
+      "tx": ""
+    }
+  ],
+  "last_updated": "2026-03-12T10:01:04.138180+00:00",
+  "last_tx": "96b47776b6e1dee0aa316c8b4a3525a12e51ba242ea9ce75fe8d4f832e3d381a"
+}

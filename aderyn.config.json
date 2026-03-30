@@ -1,0 +1,8 @@
+{
+  "root": ".",
+  "src": "contracts",
+  "remappings": [
+    "@openzeppelin/=node_modules/@openzeppelin/"
+  ],
+  "exclude": ["contracts/mocks", "test"]
+}

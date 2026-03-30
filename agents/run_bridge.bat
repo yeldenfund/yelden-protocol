@@ -15,8 +15,9 @@ if errorlevel 1 (
 )
 
 echo.
-echo [2/2] Enviando score para Sepolia...
+echo [2/2] Enviando score para Polygon...
 echo s | python yelden_reporter.py
+python generate_agent_data.py
 
 echo [3/3] Postando no Telegram...
 python telegram_report.py
