@@ -4,7 +4,7 @@ const { deployConnected } = require("./helpers");
 
 describe("YeldenVault — Concurrency Testing", function () {
   let vault, distributor, mockUSDC;
-  let users;
+  let users, yieldOracle;
 
   const NUM_USERS = 10;
   const DEPOSIT_AMOUNT = ethers.parseUnits("1000", 6);
@@ -16,6 +16,7 @@ describe("YeldenVault — Concurrency Testing", function () {
     const deployment = await deployConnected();
     vault = deployment.vault;
     mockUSDC = deployment.usdc;
+    yieldOracle = deployment.yieldOracle;
 
     for (const user of users) {
       await mockUSDC.mint(user.address, ethers.parseUnits("100000", 6));
@@ -176,7 +177,7 @@ describe("YeldenVault — Concurrency Testing", function () {
       );
 
       // Harvest and new deposits simultaneously
-      const harvestPromise = vault.connect(owner).harvest(ethers.parseUnits("5000", 6));
+      const harvestPromise = vault.connect(yieldOracle).harvest(ethers.parseUnits("5000", 6));
       
       const newDeposits = users.slice(5, 8).map(async user => {
         await mockUSDC.connect(user).approve(vaultAddress, DEPOSIT_AMOUNT);

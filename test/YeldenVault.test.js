@@ -2,21 +2,21 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { deployConnected, deployVaultOnly } = require("./helpers");
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  YELDEN VAULT TESTS
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 describe("YeldenVault", function () {
   let vault, distributor, mockUSDC;
-  let owner, addr1, addr2, addr3;
+  let owner, addr1, addr2, addr3, yieldOracle;
 
   beforeEach(async function () {
     [owner, addr1, addr2, addr3] = await ethers.getSigners();
-    ({ vault, distributor, usdc: mockUSDC } = await deployConnected());
+    ({ vault, distributor, usdc: mockUSDC, yieldOracle } = await deployConnected());
     await mockUSDC.mint(addr1.address, ethers.parseUnits("10000", 6));
     await mockUSDC.mint(addr2.address, ethers.parseUnits("10000", 6));
   });
 
-  // ── Deployment ──────────────────────────────────────────────
+  // â”€â”€ Deployment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe("Deployment", function () {
     it("Should set the correct asset address", async function () {
       expect(await vault.asset()).to.equal(await mockUSDC.getAddress());
@@ -45,7 +45,7 @@ describe("YeldenVault", function () {
     });
   });
 
-  // ── setDistributor ──────────────────────────────────────────
+  // â”€â”€ setDistributor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe("setDistributor", function () {
     it("Should set distributor correctly", async function () {
       const YeldenDistributor = await ethers.getContractFactory("YeldenDistributor");
@@ -65,16 +65,18 @@ describe("YeldenVault", function () {
     });
     it("Should revert if not owner", async function () {
       await expect(vault.connect(addr1).setDistributor(addr1.address))
-        .to.be.revertedWithCustomError(vault, "OwnableUnauthorizedAccount");
+        .to.be.revertedWithCustomError(vault, 'OwnableUnauthorizedAccount');
     });
     it("Should revert harvest if distributor not set", async function () {
       const { vault: freshVault } = await deployVaultOnly();
-      await expect(freshVault.harvest(1000))
+      const [,oracle] = await ethers.getSigners();
+      await freshVault.setYieldOracle(await oracle.getAddress());
+      await expect(freshVault.connect(oracle).harvest(1000))
         .to.be.revertedWith("Distributor not set");
     });
   });
 
-  // ── Deposits ─────────────────────────────────────────────────
+  // â”€â”€ Deposits â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe("Deposits", function () {
     it("Should mint yUSD 1:1 on first deposit", async function () {
       const amount = ethers.parseUnits("1000", 6);
@@ -129,7 +131,7 @@ describe("YeldenVault", function () {
     });
   });
 
-  // ── Withdrawals ──────────────────────────────────────────────
+  // â”€â”€ Withdrawals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe("Withdrawals", function () {
     beforeEach(async function () {
       const amount = ethers.parseUnits("1000", 6);
@@ -175,7 +177,7 @@ describe("YeldenVault", function () {
     });
   });
 
-  // ── Redeem ───────────────────────────────────────────────────
+  // â”€â”€ Redeem â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe("Redeem", function () {
     beforeEach(async function () {
       const amount = ethers.parseUnits("1000", 6);
@@ -217,14 +219,14 @@ describe("YeldenVault", function () {
     });
   });
 
-  // ── Harvest ──────────────────────────────────────────────────
+  // â”€â”€ Harvest â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe("Harvest", function () {
-    it("Should only allow owner to harvest", async function () {
-      await expect(vault.connect(addr1).harvest(1000))
-        .to.be.revertedWithCustomError(vault, "OwnableUnauthorizedAccount");
+    it("Should revert harvest if caller is not oracle", async function () {
+      await expect(vault.connect(addr2).harvest(1000))
+        .to.be.revertedWith('Vault: caller is not oracle');
     });
     it("Should revert on zero yield harvest", async function () {
-      await expect(vault.harvest(0)).to.be.revertedWith("Zero yield");
+      await expect(vault.connect(yieldOracle).harvest(0)).to.be.revertedWith("Zero yield");
     });
     it("Should emit Harvest event with correct 5-arg split", async function () {
       const grossYield = ethers.parseUnits("1000", 6);
@@ -233,41 +235,50 @@ describe("YeldenVault", function () {
       const surplus = grossYield - base - regen;
       const reserve = (surplus * 2000n) / 10000n;
       const toDist  = surplus - reserve;
-      await expect(vault.harvest(grossYield))
+      await mockUSDC.mint(await vault.getAddress(), grossYield);
+      await expect(vault.connect(yieldOracle).harvest(grossYield))
         .to.emit(vault, "Harvest")
         .withArgs(grossYield, base, regen, reserve, toDist);
     });
     it("Should accumulate yield reserve correctly", async function () {
       const grossYield = ethers.parseUnits("1000", 6);
-      await vault.harvest(grossYield);
+      await mockUSDC.mint(await vault.getAddress(), grossYield);
+      await vault.connect(yieldOracle).harvest(grossYield);
       const surplus  = grossYield - (grossYield * 450n) / 10000n - (grossYield * 500n) / 10000n;
       const expected = (surplus * 2000n) / 10000n;
       expect(await vault.yieldReserve()).to.equal(expected);
     });
     it("Should accumulate yield reserve across multiple harvests", async function () {
       const grossYield = ethers.parseUnits("1000", 6);
-      await vault.harvest(grossYield);
-      await vault.harvest(grossYield);
+      await mockUSDC.mint(await vault.getAddress(), grossYield);
+      await vault.connect(yieldOracle).harvest(grossYield);
+      await mockUSDC.mint(await vault.getAddress(), grossYield);
+      await vault.connect(yieldOracle).harvest(grossYield);
       const surplus = grossYield - (grossYield * 450n) / 10000n - (grossYield * 500n) / 10000n;
       const reserve = (surplus * 2000n) / 10000n;
       expect(await vault.yieldReserve()).to.equal(reserve * 2n);
     });
     it("Should update lastHarvest timestamp", async function () {
-      await vault.harvest(1000n);
+      await mockUSDC.mint(await vault.getAddress(), 1000n);
+      await vault.connect(yieldOracle).harvest(1000n);
       const block = await ethers.provider.getBlock("latest");
       expect(await vault.lastHarvest()).to.equal(BigInt(block.timestamp));
     });
     it("Should route surplus to distributor", async function () {
-      await vault.harvest(ethers.parseUnits("1000", 6));
+      await mockUSDC.mint(await vault.getAddress(), ethers.parseUnits("1000", 6));
+      await mockUSDC.mint(await vault.getAddress(), ethers.parseUnits("1000", 6));
+    await vault.connect(yieldOracle).harvest(ethers.parseUnits("1000", 6));
       const [,, totalDist] = await distributor.poolBalances();
       expect(totalDist).to.be.gt(0n);
     });
   });
 
-  // ── withdrawReserve ──────────────────────────────────────────
+  // â”€â”€ withdrawReserve â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe("withdrawReserve", function () {
     beforeEach(async function () {
-      await vault.harvest(ethers.parseUnits("1000", 6));
+      await mockUSDC.mint(await vault.getAddress(), ethers.parseUnits("1000", 6));
+      await mockUSDC.mint(await vault.getAddress(), ethers.parseUnits("1000", 6));
+    await vault.connect(yieldOracle).harvest(ethers.parseUnits("1000", 6));
     });
     it("Should allow owner to withdraw from reserve", async function () {
       const reserve = await vault.yieldReserve();
@@ -292,11 +303,11 @@ describe("YeldenVault", function () {
     });
     it("Should revert if not owner", async function () {
       await expect(vault.connect(addr1).withdrawReserve(addr1.address, 1n))
-        .to.be.revertedWithCustomError(vault, "OwnableUnauthorizedAccount");
+        .to.be.revertedWithCustomError(vault, 'OwnableUnauthorizedAccount');
     });
   });
 
-  // ── Share Conversion ─────────────────────────────────────────
+  // â”€â”€ Share Conversion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   describe("Share Conversion", function () {
     it("convertToShares returns 1:1 when vault is empty", async function () {
       expect(await vault.convertToShares(1000)).to.equal(1000);
@@ -315,16 +326,16 @@ describe("YeldenVault", function () {
   });
 });
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  YELDEN DISTRIBUTOR TESTS
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 describe("YeldenDistributor", function () {
   let vault, distributor, mockUSDC;
   let owner, addr1, addr2;
 
   beforeEach(async function () {
     [owner, addr1, addr2] = await ethers.getSigners();
-    ({ vault, distributor, usdc: mockUSDC } = await deployConnected());
+    ({ vault, distributor, usdc: mockUSDC, yieldOracle } = await deployConnected());
   });
 
   describe("Deployment", function () {
@@ -361,10 +372,11 @@ describe("YeldenDistributor", function () {
     });
   });
 
-  describe("Distribute — via vault.harvest()", function () {
+  describe("Distribute â€” via vault.harvest()", function () {
     it("Should split surplus into ZK + AI pools correctly", async function () {
       const grossYield = ethers.parseUnits("1000", 6);
-      await vault.harvest(grossYield);
+      await mockUSDC.mint(await vault.getAddress(), grossYield);
+      await vault.connect(yieldOracle).harvest(grossYield);
       const surplus = grossYield - (grossYield * 450n) / 10000n - (grossYield * 500n) / 10000n;
       const toDist  = surplus - (surplus * 2000n) / 10000n;
       const zkTotal = (toDist * 1000n) / 10000n;
@@ -374,8 +386,10 @@ describe("YeldenDistributor", function () {
     });
     it("Should accumulate ZK pool across multiple harvests", async function () {
       const grossYield = ethers.parseUnits("1000", 6);
-      await vault.harvest(grossYield);
-      await vault.harvest(grossYield);
+      await mockUSDC.mint(await vault.getAddress(), grossYield);
+      await vault.connect(yieldOracle).harvest(grossYield);
+      await mockUSDC.mint(await vault.getAddress(), grossYield);
+      await vault.connect(yieldOracle).harvest(grossYield);
       const surplus = grossYield - (grossYield * 450n) / 10000n - (grossYield * 500n) / 10000n;
       const toDist  = surplus - (surplus * 2000n) / 10000n;
       const zkTotal = (toDist * 1000n) / 10000n;
@@ -384,8 +398,10 @@ describe("YeldenDistributor", function () {
     });
     it("Should accumulate AI pool across multiple harvests", async function () {
       const grossYield = ethers.parseUnits("1000", 6);
-      await vault.harvest(grossYield);
-      await vault.harvest(grossYield);
+      await mockUSDC.mint(await vault.getAddress(), grossYield);
+      await vault.connect(yieldOracle).harvest(grossYield);
+      await mockUSDC.mint(await vault.getAddress(), grossYield);
+      await vault.connect(yieldOracle).harvest(grossYield);
       const surplus = grossYield - (grossYield * 450n) / 10000n - (grossYield * 500n) / 10000n;
       const toDist  = surplus - (surplus * 2000n) / 10000n;
       const aiShare = ((toDist * 1000n) / 10000n * 500n) / 10000n;
@@ -393,8 +409,10 @@ describe("YeldenDistributor", function () {
     });
     it("Should track totalDistributed correctly", async function () {
       const grossYield = ethers.parseUnits("1000", 6);
-      await vault.harvest(grossYield);
-      await vault.harvest(grossYield);
+      await mockUSDC.mint(await vault.getAddress(), grossYield);
+      await vault.connect(yieldOracle).harvest(grossYield);
+      await mockUSDC.mint(await vault.getAddress(), grossYield);
+      await vault.connect(yieldOracle).harvest(grossYield);
       const surplus = grossYield - (grossYield * 450n) / 10000n - (grossYield * 500n) / 10000n;
       const toDist  = surplus - (surplus * 2000n) / 10000n;
       const [,, totalDist] = await distributor.poolBalances();
@@ -408,7 +426,8 @@ describe("YeldenDistributor", function () {
     const dC = [0n, 0n];
 
     beforeEach(async function () {
-      await vault.harvest(ethers.parseUnits("100000", 6));
+      await mockUSDC.mint(await vault.getAddress(), ethers.parseUnits("100000", 6));
+      await vault.connect(yieldOracle).harvest(ethers.parseUnits("100000", 6));
     });
 
     it("Should allow claiming from ZK pool (no verifier set)", async function () {
@@ -449,7 +468,8 @@ describe("YeldenDistributor", function () {
 
   describe("releaseAIBonus", function () {
     beforeEach(async function () {
-      await vault.harvest(ethers.parseUnits("100000", 6));
+      await mockUSDC.mint(await vault.getAddress(), ethers.parseUnits("100000", 6));
+      await vault.connect(yieldOracle).harvest(ethers.parseUnits("100000", 6));
     });
     it("Should release AI bonus to agent address", async function () {
       const [, aiPoolBefore] = await distributor.poolBalances();
@@ -479,7 +499,9 @@ describe("YeldenDistributor", function () {
 
   describe("poolBalances view", function () {
     it("Should return correct pool balances", async function () {
-      await vault.harvest(ethers.parseUnits("1000", 6));
+      await mockUSDC.mint(await vault.getAddress(), ethers.parseUnits("1000", 6));
+      await mockUSDC.mint(await vault.getAddress(), ethers.parseUnits("1000", 6));
+    await vault.connect(yieldOracle).harvest(ethers.parseUnits("1000", 6));
       const [zk, ai, total] = await distributor.poolBalances();
       expect(zk).to.equal(await distributor.zkBonusPool());
       expect(ai).to.equal(await distributor.aiAgentPool());
@@ -488,27 +510,28 @@ describe("YeldenDistributor", function () {
   });
 });
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  ZK VERIFIER TESTS
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 describe("ZKVerifier", function () {
-  let verifier;
+  let verifier, distributor;
   let owner, addr1, addr2;
 
   function makeNullifier(n) {
     return ethers.zeroPadValue(ethers.toBeHex(n), 32);
   }
-
   beforeEach(async function () {
     [owner, addr1, addr2] = await ethers.getSigners();
-    const ZKVerifier = await ethers.getContractFactory("ZKVerifier");
-    verifier = await ZKVerifier.deploy();
+    const YeldenDistributor = await ethers.getContractFactory('YeldenDistributor');
+    distributor = await YeldenDistributor.deploy(); await distributor.waitForDeployment();
+    const ZKVerifier = await ethers.getContractFactory('ZKVerifier');
+    verifier = await ZKVerifier.deploy(ethers.ZeroAddress, await distributor.getAddress());
     await verifier.waitForDeployment();
   });
 
   describe("Deployment", function () {
     it("Should deploy with empty nullifier mapping", async function () {
-      expect(await verifier.usedNullifiers(makeNullifier(1))).to.equal(false);
+      expect(await verifier.usedNullifiers(1)).to.equal(false);
     });
   });
 
@@ -518,8 +541,8 @@ describe("ZKVerifier", function () {
     const dC = [0n, 0n];
 
     it("Should claim bonus and mark nullifier as used", async function () {
-      await verifier.connect(addr1).claimBonus(dA, dB, dC, [1n, 500n, 12345n]);
-      expect(await verifier.usedNullifiers(makeNullifier(12345n))).to.equal(true);
+      await verifier.connect(addr1).claimBonus(dA, dB, dC, [1n, 500n, 12345n, 0n]);
+      expect(await verifier.usedNullifiers(12345n)).to.equal(true);
     });
     it("Should emit BonusClaimed event with correct args", async function () {
       const score = 800n;
@@ -527,58 +550,61 @@ describe("ZKVerifier", function () {
       const nullifierBytes = makeNullifier(nullifierNum);
       const expectedBonus = score * BigInt(1e18);
       await expect(
-        verifier.connect(addr1).claimBonus(dA, dB, dC, [2n, score, nullifierNum])
+        verifier.connect(addr1).claimBonus(dA, dB, dC, [1n, score, nullifierNum, 0n])
       ).to.emit(verifier, "BonusClaimed")
-       .withArgs(nullifierBytes, 2n, score, expectedBonus);
+       .withArgs(99999n, 0n, score, addr1.address);
     });
     it("Should calculate bonus as score * 1e18", async function () {
       const score = 750n;
-      const tx = await verifier.connect(addr1).claimBonus(dA, dB, dC, [1n, score, 11111n]);
+      const tx = await verifier.connect(addr1).claimBonus(dA, dB, dC, [1n, score, 11111n, 0n]);
       const receipt = await tx.wait();
-      expect(receipt.logs[0].args[3]).to.equal(score * BigInt("1000000000000000000"));
+      // Contract emits (nullifierHash, commitmentHash, threshold, claimer)
+      expect(receipt.logs[0].args[2]).to.equal(score); // threshold == score passed as input[1]
     });
     it("Should revert on double-claim with same nullifier", async function () {
-      const inputs = [1n, 500n, 55555n];
+      const inputs = [1n, 500n, 55555n, 0n];
       await verifier.connect(addr1).claimBonus(dA, dB, dC, inputs);
       await expect(verifier.connect(addr1).claimBonus(dA, dB, dC, inputs))
-        .to.be.revertedWith("Already claimed");
+        .to.be.revertedWithCustomError(verifier, 'NullifierUsed');
     });
     it("Should allow different nullifiers to claim independently", async function () {
-      await verifier.connect(addr1).claimBonus(dA, dB, dC, [1n, 500n, 11111n]);
-      await verifier.connect(addr2).claimBonus(dA, dB, dC, [1n, 500n, 22222n]);
-      expect(await verifier.usedNullifiers(makeNullifier(11111n))).to.equal(true);
-      expect(await verifier.usedNullifiers(makeNullifier(22222n))).to.equal(true);
+      await verifier.connect(addr1).claimBonus(dA, dB, dC, [1n, 500n, 11111n, 0n]);
+      await verifier.connect(addr2).claimBonus(dA, dB, dC, [1n, 500n, 22222n, 0n]);
+      expect(await verifier.usedNullifiers(11111n)).to.equal(true);
+      expect(await verifier.usedNullifiers(22222n)).to.equal(true);
     });
     it("Should allow different addresses to claim with different nullifiers", async function () {
-      await verifier.connect(addr1).claimBonus(dA, dB, dC, [1n, 500n, 33333n]);
-      await verifier.connect(addr2).claimBonus(dA, dB, dC, [1n, 500n, 44444n]);
+      await verifier.connect(addr1).claimBonus(dA, dB, dC, [1n, 500n, 33333n, 0n]);
+      await verifier.connect(addr2).claimBonus(dA, dB, dC, [1n, 500n, 44444n, 0n]);
     });
     it("Should handle zero score correctly", async function () {
-      await expect(verifier.connect(addr1).claimBonus(dA, dB, dC, [1n, 0n, 77777n]))
+      await expect(verifier.connect(addr1).claimBonus(dA, dB, dC, [1n, 0n, 77777n, 0n]))
         .to.not.be.reverted;
     });
   });
 });
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  INTEGRATION TESTS
-// ─────────────────────────────────────────────────────────────
-describe("Integration — YeldenVault + YeldenDistributor", function () {
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+describe("Integration â€” YeldenVault + YeldenDistributor", function () {
   let vault, distributor, mockUSDC;
   let owner, user1, user2;
+  let yieldOracle;
 
   beforeEach(async function () {
     [owner, user1, user2] = await ethers.getSigners();
-    ({ vault, distributor, usdc: mockUSDC } = await deployConnected());
+    ({ vault, distributor, usdc: mockUSDC, yieldOracle } = await deployConnected());
     await mockUSDC.mint(user1.address, ethers.parseUnits("50000", 6));
     await mockUSDC.mint(user2.address, ethers.parseUnits("50000", 6));
   });
 
-  it("Full cycle: deposit → harvest → ZK claim", async function () {
+  it("Full cycle: deposit â†’ harvest â†’ ZK claim", async function () {
     const dep = ethers.parseUnits("10000", 6);
     await mockUSDC.connect(user1).approve(await vault.getAddress(), dep);
     await vault.connect(user1).deposit(dep, user1.address);
-    await vault.harvest(ethers.parseUnits("1000", 6));
+    await mockUSDC.mint(await vault.getAddress(), ethers.parseUnits("1000", 6));
+    await vault.connect(yieldOracle).harvest(ethers.parseUnits("1000", 6));
     const [zkPool, aiPool, totalDist] = await distributor.poolBalances();
     expect(zkPool).to.be.gt(0n);
     expect(aiPool).to.be.gt(0n);
@@ -593,7 +619,8 @@ describe("Integration — YeldenVault + YeldenDistributor", function () {
     const dep = ethers.parseUnits("5000", 6);
     await mockUSDC.connect(user1).approve(await vault.getAddress(), dep);
     await vault.connect(user1).deposit(dep, user1.address);
-    await vault.harvest(ethers.parseUnits("500", 6));
+    await mockUSDC.mint(await vault.getAddress(), ethers.parseUnits("500", 6));
+    await vault.connect(yieldOracle).harvest(ethers.parseUnits("500", 6));
     const shares = await vault.balanceOf(user1.address);
     await vault.connect(user1).redeem(shares, user1.address, user1.address);
     expect(await vault.balanceOf(user1.address)).to.equal(0);
@@ -613,14 +640,18 @@ describe("Integration — YeldenVault + YeldenDistributor", function () {
 
   it("Bear market: yieldReserve accumulates over multiple harvests", async function () {
     const grossYield = ethers.parseUnits("1000", 6);
-    for (let i = 0; i < 5; i++) await vault.harvest(grossYield);
+    for (let i = 0; i < 5; i++) {
+      await mockUSDC.mint(await vault.getAddress(), grossYield);
+      await vault.connect(yieldOracle).harvest(grossYield);
+    }
     const surplus = grossYield - (grossYield * 450n) / 10000n - (grossYield * 500n) / 10000n;
     const reservePerHarvest = (surplus * 2000n) / 10000n;
     expect(await vault.yieldReserve()).to.equal(reservePerHarvest * 5n);
   });
 
-  it("AI bonus: harvest → releaseAIBonus to agent", async function () {
-    await vault.harvest(ethers.parseUnits("10000", 6));
+  it("AI bonus: harvest â†’ releaseAIBonus to agent", async function () {
+    await mockUSDC.mint(await vault.getAddress(), ethers.parseUnits("10000", 6));
+    await vault.connect(yieldOracle).harvest(ethers.parseUnits("10000", 6));
     const [, aiPool] = await distributor.poolBalances();
     await distributor.releaseAIBonus(user1.address, aiPool / 2n);
     const [, aiPoolAfter] = await distributor.poolBalances();

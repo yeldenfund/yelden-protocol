@@ -4,7 +4,7 @@ const { deployConnected } = require("./helpers");
 
 describe("YeldenVault — Fuzz Testing", function () {
   let vault, distributor, mockUSDC;
-  let owner, addr1, addr2;
+  let owner, addr1, addr2, yieldOracle;
 
   beforeEach(async function () {
     [owner, addr1, addr2] = await ethers.getSigners();
@@ -13,6 +13,7 @@ describe("YeldenVault — Fuzz Testing", function () {
     vault = deployment.vault;
     distributor = deployment.distributor;
     mockUSDC = deployment.usdc;
+    yieldOracle = deployment.yieldOracle;
 
     await mockUSDC.mint(addr1.address, ethers.parseUnits("10000000", 6));
     await mockUSDC.mint(addr2.address, ethers.parseUnits("10000000", 6));
@@ -96,18 +97,20 @@ describe("YeldenVault — Fuzz Testing", function () {
     it("Should handle 100 random harvest amounts", async function () {
       for (let i = 0; i < 100; i++) {
         const grossYield = BigInt(Math.floor(Math.random() * 10000) + 1) * 10n ** 6n;
-        await vault.connect(owner).harvest(grossYield);
+        await mockUSDC.mint(await vault.getAddress(), grossYield);
+        await vault.connect(yieldOracle).harvest(grossYield);
       }
       expect(await vault.yieldReserve()).to.be.gt(0);
     });
 
     it("Should revert on zero harvest", async function () {
-      await expect(vault.connect(owner).harvest(0)).to.be.revertedWith("Zero yield");
+      await expect(vault.connect(yieldOracle).harvest(0)).to.be.revertedWith("Zero yield");
     });
 
     it("Should handle extremely large harvest amounts", async function () {
       const hugeYield = ethers.parseUnits("1000000000", 6);
-      await expect(vault.connect(owner).harvest(hugeYield)).to.not.be.reverted;
+      await mockUSDC.mint(await vault.getAddress(), hugeYield);
+      await expect(vault.connect(yieldOracle).harvest(hugeYield)).to.not.be.reverted;
     });
   });
 });

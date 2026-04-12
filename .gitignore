@@ -29,3 +29,12 @@ test.spec
 files/
 *.zip
 *.tar.gz
+
+.env
+.env.txt
+hardhat.config.js.bak
+echo
+ls
+python
+git
+slither

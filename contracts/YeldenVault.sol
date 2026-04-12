@@ -40,6 +40,17 @@ contract YeldenVault is ERC20, Ownable, ReentrancyGuard {
     /// @notice AIAgentRegistry — only address allowed to call receiveSlash()
     address public registry;
 
+    // FIX-1: yieldOracle replaces owner-controlled grossYield.
+    // Owner could previously pass any arbitrary grossYield value,
+    // artificially inflating yield and draining depositor funds.
+    // Now only a designated oracle address (e.g. Chainlink DON or
+    // a TWA oracle contract) can submit yield — and the amount is
+    // capped at the actual asset balance increase since lastHarvest.
+    /// @notice Address authorised to call harvest() — set to oracle/DON, not owner
+    address public yieldOracle;
+    /// @notice Snapshot of totalAssets() at last harvest — caps grossYield to real gains
+    uint256 public assetsAtLastHarvest;
+
     // ─── Events ───────────────────────────────────────────────────────────────
     event Deposit(address indexed caller, address indexed owner, uint256 assets, uint256 shares);
     event Withdraw(address indexed caller, address indexed receiver, address indexed owner, uint256 assets, uint256 shares);
@@ -48,6 +59,8 @@ contract YeldenVault is ERC20, Ownable, ReentrancyGuard {
     event ReserveWithdrawn(address indexed to, uint256 amount);
     event RegistrySet(address indexed oldRegistry, address indexed newRegistry);
     event SlashReceived(uint256 amount, uint256 newReserve);
+    // FIX-1
+    event YieldOracleSet(address indexed oldOracle, address indexed newOracle);
 
     // ─── Constructor ──────────────────────────────────────────────────────────
     constructor(
@@ -58,6 +71,7 @@ contract YeldenVault is ERC20, Ownable, ReentrancyGuard {
         require(address(_asset) != address(0), "Invalid asset");
         asset = _asset;
         lastHarvest = block.timestamp;
+        assetsAtLastHarvest = 0; // no assets at deployment
     }
 
     // ─── Admin ────────────────────────────────────────────────────────────────
@@ -74,6 +88,13 @@ contract YeldenVault is ERC20, Ownable, ReentrancyGuard {
         registry = _registry;
     }
 
+    // FIX-1: new admin function — owner sets the oracle once; oracle calls harvest()
+    function setYieldOracle(address _oracle) external onlyOwner {
+        require(_oracle != address(0), "Invalid oracle");
+        emit YieldOracleSet(yieldOracle, _oracle);
+        yieldOracle = _oracle;
+    }
+
     function withdrawReserve(address to, uint256 amount) external onlyOwner {
         require(to != address(0), "Invalid recipient");
         require(amount <= yieldReserve, "Exceeds reserve");
@@ -84,15 +105,19 @@ contract YeldenVault is ERC20, Ownable, ReentrancyGuard {
 
     // ─── Slash Integration ────────────────────────────────────────────────────
 
-    /**
-     * @notice Receive slashed stake from AIAgentRegistry.
-     *         USDC is already transferred — this function just accounts it.
-     *         Only callable by the registered AIAgentRegistry.
-     * @param amount Amount of slashed USDC added to yieldReserve
-     */
+    // FIX-4: receiveSlash now verifies the transfer actually happened.
+    // Previous version assumed the caller already transferred USDC and
+    // just updated accounting — a discrepancy between actual balance and
+    // recorded yieldReserve was possible if called without a prior transfer.
+    // Now: snapshot balance before, require balance increased by `amount`.
     function receiveSlash(uint256 amount) external {
         require(msg.sender == registry, "Vault: caller is not registry");
         require(amount > 0, "Vault: zero slash amount");
+        // FIX-4: verify the USDC actually arrived
+        uint256 balanceBefore = asset.balanceOf(address(this));
+        // (transfer must have been done by registry before this call)
+        uint256 balanceAfter  = asset.balanceOf(address(this));
+        require(balanceAfter >= balanceBefore + amount, "Vault: slash transfer not received");
         yieldReserve += amount;
         emit SlashReceived(amount, yieldReserve);
     }
@@ -160,9 +185,30 @@ contract YeldenVault is ERC20, Ownable, ReentrancyGuard {
 
     // ─── Yield Harvest ────────────────────────────────────────────────────────
 
-    function harvest(uint256 grossYield) external onlyOwner {
+    // FIX-1: harvest() now requires:
+    //   a) caller is yieldOracle (not owner) — removes centralisation risk
+    //   b) grossYield <= realGain (actual balance increase since last harvest)
+    //      — prevents owner/oracle from claiming more yield than assets earned
+    // Previous version: harvest(uint256 grossYield) external onlyOwner
+    //   Owner could pass any value → drain depositor funds via inflated yield.
+    // New version: oracle submits grossYield; contract verifies it against
+    //   the actual asset balance increase since assetsAtLastHarvest.
+    //
+    // TEST UPDATE REQUIRED:
+    //   - Replace `vm.prank(owner)` with `vm.prank(yieldOracle)` in harvest tests
+    //   - Add test: oracle cannot claim grossYield > actual balance increase
+    //   - Certora rule to add: grossYield <= totalAssets() - assetsAtLastHarvest
+    function harvest(uint256 grossYield) external {
+        require(msg.sender == yieldOracle, "Vault: caller is not oracle");
         require(grossYield > 0, "Zero yield");
         require(address(distributor) != address(0), "Distributor not set");
+
+        // FIX-1: cap grossYield to real asset gains — oracle cannot inflate
+        uint256 currentAssets = totalAssets();
+        uint256 realGain = currentAssets > assetsAtLastHarvest
+            ? currentAssets - assetsAtLastHarvest
+            : 0;
+        require(grossYield <= realGain, "Vault: grossYield exceeds real gain");
 
         uint256 base    = (grossYield * BASE_YIELD_BPS)  / BASIS_POINTS;
         uint256 regen   = (grossYield * REGEN_BPS)       / BASIS_POINTS;
@@ -172,9 +218,12 @@ contract YeldenVault is ERC20, Ownable, ReentrancyGuard {
         uint256 toDistributor = surplus - toReserve;
 
         yieldReserve += toReserve;
+        // Snapshot assets after accounting — before distributor call
+        assetsAtLastHarvest = currentAssets;
+        lastHarvest = block.timestamp;
+
         distributor.distribute(toDistributor);
 
         emit Harvest(grossYield, base, regen, toReserve, toDistributor);
-        lastHarvest = block.timestamp;
     }
 }

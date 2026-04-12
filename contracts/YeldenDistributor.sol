@@ -47,6 +47,11 @@ contract YeldenDistributor is Ownable {
     /// @notice Total surplus distributed to date
     uint256 public totalDistributed;
 
+    // FIX-2: nullifier mapping — prevents replay/double-claim of ZK proofs
+    // Stored here (not only in ZKVerifier) so protection applies even when
+    // zkVerifier is address(0) (testnet mode). Key = keccak256(publicInputs[2]).
+    mapping(bytes32 => bool) public usedNullifiers;
+
     /// @notice Optional ZK verifier — set in v3 for on-chain proof verification
     IZKVerifier public zkVerifier;
 
@@ -161,12 +166,20 @@ contract YeldenDistributor is Ownable {
         require(amount <= zkBonusPool, "Insufficient pool");
         require(amount <= WALLET_CAP, "Exceeds wallet cap");
 
+        // FIX-2: derive nullifier key from publicInputs[2] and check reuse
+        // This fires regardless of whether zkVerifier is set — closes the
+        // testnet gap where lack of verifier meant zero replay protection.
+        bytes32 nullifierKey = bytes32(publicInputs[2]);
+        require(!usedNullifiers[nullifierKey], "Nullifier used");
+
         // On-chain ZK verification when verifier is deployed
         if (address(zkVerifier) != address(0)) {
             bool valid = zkVerifier.verifyProof(a, b, c, publicInputs);
             require(valid, "Invalid ZK proof");
         }
 
+        // FIX-2: mark nullifier before state change (checks-effects-interactions)
+        usedNullifiers[nullifierKey] = true;
         zkBonusPool -= amount;
 
         emit ZKBonusClaimed(msg.sender, amount, category);

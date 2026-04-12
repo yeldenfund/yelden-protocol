@@ -318,7 +318,7 @@ contract AIAgentRegistry is AccessControl, ReentrancyGuard {
             "Registry: agent not slashable"
         );
 
-        uint256 burnAmount;
+        uint256 burnAmount = 0;
 
         if (level == SlashLevel.WARNING) {
             require(a.status == AgentStatus.ACTIVE, "Registry: WARNING only for ACTIVE");

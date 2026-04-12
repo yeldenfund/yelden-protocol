@@ -47,6 +47,7 @@ contract ZKVerifier {
 
     // ── Constructor ──────────────────────────────────────────────────────────
     constructor(address _verifier, address _distributor) {
+        require(_distributor != address(0), "ZKVerifier: invalid distributor");
         verifier    = IGroth16Verifier(_verifier);
         distributor = _distributor;
     }
