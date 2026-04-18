@@ -8,7 +8,7 @@
   "stake_yld": 50,
   "sistema_score": 109,
   "accumulated_score": 109,
-  "score_onchain": 111,
+  "score_onchain": 109,
   "ema": 373.5,
   "sf": 0.4759,
   "cf": 0.6124,
@@ -25,13 +25,19 @@
       "date": "2026-04-11",
       "trades": 1,
       "batch": 765,
-      "accumulated": 654
+      "accumulated": 804
     },
     {
       "date": "2026-04-15",
       "trades": 3,
       "batch": 619,
-      "accumulated": 654
+      "accumulated": 804
+    },
+    {
+      "date": "2026-04-18",
+      "trades": 6,
+      "batch": 900,
+      "accumulated": 804
     }
   ],
   "last_updated": "2026-04-17T06:02:06.366856",
