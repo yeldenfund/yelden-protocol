@@ -7,15 +7,15 @@
   "agent_type": "TRADING",
   "erc_id": "27703",
   "stake_yld": 50,
-  "sistema_score": 191,
-  "accumulated_score": 191,
-  "score_onchain": 191,
-  "ema": 401.6,
+  "sistema_score": 218,
+  "accumulated_score": 218,
+  "score_onchain": 218,
+  "ema": 458.5,
   "sf": 0.4759,
   "cf": 1.0,
-  "s_raw": 56.07,
-  "stage": "EXPERIMENTAL",
-  "total_trades_lifetime": 273,
+  "s_raw": 78.15,
+  "stage": "PROMISING",
+  "total_trades_lifetime": 231,
   "win_rate_lifetime": 0.601,
   "sharpe_lifetime": 1.908,
   "total_profit_lifetime": 1103.5,
@@ -26,22 +26,28 @@
       "date": "2026-04-11",
       "trades": 1,
       "batch": 765,
-      "accumulated": 804
+      "accumulated": 761
     },
     {
       "date": "2026-04-15",
       "trades": 3,
       "batch": 619,
-      "accumulated": 804
+      "accumulated": 761
     },
     {
       "date": "2026-04-18",
       "trades": 6,
       "batch": 900,
-      "accumulated": 804
+      "accumulated": 761
+    },
+    {
+      "date": "2026-04-24",
+      "trades": 1,
+      "batch": 375,
+      "accumulated": 761
     }
   ],
-  "last_updated": "2026-04-22T06:00:16.408019",
-  "last_tx": "f00f6c710f5a606708f811979cd396276daf0ed6d19963e83e55564c60ab54ad",
+  "last_updated": "2026-04-24T06:00:10.059165",
+  "last_tx": "6b335cc365344a546c5559c80c887a4b4768fdb69126ff771351edfcd9e9a859",
   "scorer_version": "YAAF_v4.1"
 }
