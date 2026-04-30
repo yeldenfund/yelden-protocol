@@ -7,15 +7,15 @@
   "agent_type": "TRADING",
   "erc_id": "27703",
   "stake_yld": 50,
-  "sistema_score": 63,
-  "accumulated_score": 63,
-  "score_onchain": 63,
-  "ema": 505.7,
+  "sistema_score": 365,
+  "accumulated_score": 365,
+  "score_onchain": 365,
+  "ema": 508.1,
   "sf": 0.7178,
-  "cf": 0.1732,
-  "s_raw": 28.71,
-  "stage": "EXPERIMENTAL",
-  "total_trades_lifetime": 6,
+  "cf": 1.0,
+  "s_raw": 52.14,
+  "stage": "PROMISING",
+  "total_trades_lifetime": 249,
   "win_rate_lifetime": 0.601,
   "sharpe_lifetime": 1.908,
   "total_profit_lifetime": 1103.5,
@@ -47,7 +47,7 @@
       "accumulated": 761
     }
   ],
-  "last_updated": "2026-04-29T06:00:08.356568",
-  "last_tx": "ab3ff035f62007cf1261d3a154128ba8bb084bdf203f5bfeeff1fae66e3ae81b",
+  "last_updated": "2026-04-30T06:00:22.940423",
+  "last_tx": "90dca644a294ec3b9f86d4ad5aaa92cf29e96a4871d294beff9800afb38c9265",
   "scorer_version": "YAAF_v4.1"
 }
