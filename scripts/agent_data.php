@@ -26,37 +26,43 @@
       "date": "2026-04-11",
       "trades": 1,
       "batch": 765,
-      "accumulated": 472
+      "accumulated": 432
     },
     {
       "date": "2026-04-15",
       "trades": 3,
       "batch": 619,
-      "accumulated": 472
+      "accumulated": 432
     },
     {
       "date": "2026-04-18",
       "trades": 6,
       "batch": 900,
-      "accumulated": 472
+      "accumulated": 432
     },
     {
       "date": "2026-04-24",
       "trades": 1,
       "batch": 375,
-      "accumulated": 472
+      "accumulated": 432
     },
     {
       "date": "2026-05-05",
       "trades": 6,
       "batch": 300,
-      "accumulated": 472
+      "accumulated": 432
     },
     {
       "date": "2026-05-06",
       "trades": 9,
       "batch": 300,
-      "accumulated": 472
+      "accumulated": 432
+    },
+    {
+      "date": "2026-05-07",
+      "trades": 7,
+      "batch": 300,
+      "accumulated": 432
     }
   ],
   "last_updated": "2026-05-02T06:00:12.401515",
