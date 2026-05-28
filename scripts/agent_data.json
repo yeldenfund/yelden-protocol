@@ -22,12 +22,6 @@
   "avg_r_lifetime": 0.915,
   "score_history": [
     {
-      "date": "2026-05-05",
-      "trades": 6,
-      "batch": 300,
-      "accumulated": 429
-    },
-    {
       "date": "2026-05-06",
       "trades": 9,
       "batch": 300,
@@ -79,6 +73,12 @@
       "date": "2026-05-19",
       "trades": 2,
       "batch": 300,
+      "accumulated": 429
+    },
+    {
+      "date": "2026-05-28",
+      "trades": 2,
+      "batch": 423,
       "accumulated": 429
     }
   ],
