@@ -23,67 +23,67 @@
   "avg_r_lifetime": 0.915,
   "score_history": [
     {
-      "date": "2026-05-11",
-      "trades": 2,
-      "batch": 300,
-      "accumulated": 451
-    },
-    {
       "date": "2026-05-12",
       "trades": 4,
       "batch": 300,
-      "accumulated": 451
+      "accumulated": 449
     },
     {
       "date": "2026-05-13",
       "trades": 9,
       "batch": 300,
-      "accumulated": 451
+      "accumulated": 449
     },
     {
       "date": "2026-05-14",
       "trades": 5,
       "batch": 900,
-      "accumulated": 451
+      "accumulated": 449
     },
     {
       "date": "2026-05-15",
       "trades": 2,
       "batch": 425,
-      "accumulated": 451
+      "accumulated": 449
     },
     {
       "date": "2026-05-19",
       "trades": 2,
       "batch": 300,
-      "accumulated": 451
+      "accumulated": 449
     },
     {
       "date": "2026-05-28",
       "trades": 2,
       "batch": 423,
-      "accumulated": 451
+      "accumulated": 449
     },
     {
       "date": "2026-05-29",
       "trades": 2,
       "batch": 1000,
-      "accumulated": 451
+      "accumulated": 449
     },
     {
       "date": "2026-05-30",
       "trades": 1,
       "batch": 717,
-      "accumulated": 451
+      "accumulated": 449
     },
     {
       "date": "2026-06-03",
       "trades": 2,
       "batch": 300,
-      "accumulated": 451
+      "accumulated": 449
+    },
+    {
+      "date": "2026-06-05",
+      "trades": 1,
+      "batch": 375,
+      "accumulated": 449
     }
   ],
   "last_updated": "2026-06-04T06:04:25.838070",
-  "last_tx": "61f7c1b5b39a1961503494b457d055f2e69f577c1044bf38036fce7a5d70fb71",
+  "last_tx": "dfebb7b8c3b58728e69fb022b6b7438204e4a184ab07f344c6fb167f9673b202",
   "scorer_version": "YAAF_v4.1"
 }
