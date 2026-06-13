@@ -7,15 +7,15 @@
   "agent_type": "TRADING",
   "erc_id": "27703",
   "stake_yld": 50,
-  "sistema_score": 151,
-  "accumulated_score": 151,
-  "score_onchain": 151,
-  "ema": 348.6,
+  "sistema_score": 141,
+  "accumulated_score": 141,
+  "score_onchain": 141,
+  "ema": 325.2,
   "sf": 0.4325,
   "cf": 1.0,
-  "s_raw": 41.4,
+  "s_raw": 19.25,
   "stage": "EXPERIMENTAL",
-  "total_trades_lifetime": 328,
+  "total_trades_lifetime": 214,
   "win_rate_lifetime": 0.601,
   "sharpe_lifetime": 1.908,
   "total_profit_lifetime": 1103.5,
@@ -23,67 +23,67 @@
   "avg_r_lifetime": 0.915,
   "score_history": [
     {
-      "date": "2026-05-29",
-      "trades": 2,
-      "batch": 1000,
-      "accumulated": 502
-    },
-    {
       "date": "2026-05-30",
       "trades": 1,
       "batch": 717,
-      "accumulated": 502
+      "accumulated": 496
     },
     {
       "date": "2026-06-03",
       "trades": 2,
       "batch": 300,
-      "accumulated": 502
+      "accumulated": 496
     },
     {
       "date": "2026-06-05",
       "trades": 1,
       "batch": 375,
-      "accumulated": 502
+      "accumulated": 496
     },
     {
       "date": "2026-06-06",
       "trades": 7,
       "batch": 911,
-      "accumulated": 502
+      "accumulated": 496
     },
     {
       "date": "2026-06-08",
       "trades": 1,
       "batch": 375,
-      "accumulated": 502
+      "accumulated": 496
     },
     {
       "date": "2026-06-09",
       "trades": 3,
       "batch": 621,
-      "accumulated": 502
+      "accumulated": 496
     },
     {
       "date": "2026-06-10",
       "trades": 8,
       "batch": 300,
-      "accumulated": 502
+      "accumulated": 496
     },
     {
       "date": "2026-06-11",
       "trades": 4,
       "batch": 983,
-      "accumulated": 502
+      "accumulated": 496
     },
     {
       "date": "2026-06-12",
       "trades": 4,
       "batch": 300,
-      "accumulated": 502
+      "accumulated": 496
+    },
+    {
+      "date": "2026-06-13",
+      "trades": 2,
+      "batch": 300,
+      "accumulated": 496
     }
   ],
-  "last_updated": "2026-06-04T06:04:25.838070",
-  "last_tx": "dfebb7b8c3b58728e69fb022b6b7438204e4a184ab07f344c6fb167f9673b202",
+  "last_updated": "2026-06-13T06:00:08.665509",
+  "last_tx": "90396cf3a0827c51fdfd7a4c304e7a8bb7a49d0b318b88cd61eb1247005b754b",
   "scorer_version": "YAAF_v4.1"
 }
