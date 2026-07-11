@@ -22,64 +22,64 @@
   "avg_r_lifetime": 0.915,
   "score_history": [
     {
-      "date": "2026-06-16",
-      "trades": 3,
-      "batch": 319,
-      "accumulated": 471
-    },
-    {
       "date": "2026-06-23",
       "trades": 3,
       "batch": 300,
-      "accumulated": 471
+      "accumulated": 475
     },
     {
       "date": "2026-06-24",
       "trades": 1,
       "batch": 375,
-      "accumulated": 471
+      "accumulated": 475
     },
     {
       "date": "2026-06-25",
       "trades": 2,
       "batch": 300,
-      "accumulated": 471
+      "accumulated": 475
     },
     {
       "date": "2026-06-26",
       "trades": 3,
       "batch": 300,
-      "accumulated": 471
+      "accumulated": 475
     },
     {
       "date": "2026-06-30",
       "trades": 1,
       "batch": 375,
-      "accumulated": 471
+      "accumulated": 475
     },
     {
       "date": "2026-07-02",
       "trades": 1,
       "batch": 375,
-      "accumulated": 471
+      "accumulated": 475
     },
     {
       "date": "2026-07-08",
       "trades": 3,
       "batch": 819,
-      "accumulated": 471
+      "accumulated": 475
     },
     {
       "date": "2026-07-09",
       "trades": 3,
       "batch": 319,
-      "accumulated": 471
+      "accumulated": 475
     },
     {
       "date": "2026-07-10",
       "trades": 1,
       "batch": 375,
-      "accumulated": 471
+      "accumulated": 475
+    },
+    {
+      "date": "2026-07-11",
+      "trades": 1,
+      "batch": 785,
+      "accumulated": 475
     }
   ],
   "last_updated": "2026-07-10T06:00:08.699082",
