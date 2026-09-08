@@ -7,10 +7,10 @@
   "agent_type": "TRADING",
   "erc_id": "27703",
   "stake_yld": 50,
-  "sistema_score": 49,
-  "accumulated_score": 49,
-  "score_onchain": 49,
-  "ema": 247.3,
+  "sistema_score": 50,
+  "accumulated_score": 50,
+  "score_onchain": 50,
+  "ema": 254.2,
   "sf": 0.2813,
   "cf": 0.7,
   "s_raw": 29.35,
@@ -83,7 +83,7 @@
       "accumulated": 473
     }
   ],
-  "last_updated": "2026-08-28T06:00:10.667704",
-  "last_tx": "886844b269f1cfc0c4480824eaaaf29eeb637b958025360273453a376db55699",
+  "last_updated": "2026-09-08T06:00:17.331449",
+  "last_tx": "9b660294763745d914f037d8b453d826d294a471d37e903d386d92a4a1f56014",
   "scorer_version": "YAAF_v4.1"
 }
